@@ -48,9 +48,9 @@ class File_Handler {
 	);
 
 	/**
-	 * Get the plugin upload directory path.
+	 * Get the plugin base upload directory path.
 	 *
-	 * @return string Absolute path to upload directory (with trailing slash).
+	 * @return string Absolute path to base upload directory (with trailing slash).
 	 */
 	public static function get_upload_dir(): string {
 		$upload_dir = wp_upload_dir();
@@ -58,9 +58,9 @@ class File_Handler {
 	}
 
 	/**
-	 * Get the plugin upload directory URL.
+	 * Get the plugin base upload directory URL.
 	 *
-	 * @return string URL to upload directory (with trailing slash).
+	 * @return string URL to base upload directory (with trailing slash).
 	 */
 	public static function get_upload_url(): string {
 		$upload_dir = wp_upload_dir();
@@ -68,33 +68,73 @@ class File_Handler {
 	}
 
 	/**
-	 * Ensure the upload directory exists and is protected.
+	 * Get the imports subdirectory path (uploaded price list files).
+	 *
+	 * @return string Absolute path to imports directory (with trailing slash).
+	 */
+	public static function get_imports_dir(): string {
+		return self::get_upload_dir() . 'imports/';
+	}
+
+	/**
+	 * Get the imports subdirectory URL.
+	 *
+	 * @return string URL to imports directory (with trailing slash).
+	 */
+	public static function get_imports_url(): string {
+		return self::get_upload_url() . 'imports/';
+	}
+
+	/**
+	 * Get the exports subdirectory path (generated output CSV files).
+	 *
+	 * @return string Absolute path to exports directory (with trailing slash).
+	 */
+	public static function get_exports_dir(): string {
+		return self::get_upload_dir() . 'exports/';
+	}
+
+	/**
+	 * Get the exports subdirectory URL.
+	 *
+	 * @return string URL to exports directory (with trailing slash).
+	 */
+	public static function get_exports_url(): string {
+		return self::get_upload_url() . 'exports/';
+	}
+
+	/**
+	 * Ensure the upload directories exist and are protected.
 	 * Called on plugin activation.
 	 *
 	 * @return bool True on success, false on failure.
 	 */
 	public static function ensure_upload_dir(): bool {
-		$dir = self::get_upload_dir();
+		$base_dir    = self::get_upload_dir();
+		$imports_dir = self::get_imports_dir();
+		$exports_dir = self::get_exports_dir();
 
-		if ( ! wp_mkdir_p( $dir ) ) {
-			return false;
-		}
+		foreach ( array( $base_dir, $imports_dir, $exports_dir ) as $dir ) {
+			if ( ! wp_mkdir_p( $dir ) ) {
+				return false;
+			}
 
-		// Protect directory from direct access.
-		$htaccess = $dir . '.htaccess';
-		if ( ! file_exists( $htaccess ) ) {
-			file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				$htaccess,
-				'Options -Indexes' . PHP_EOL . 'deny from all' . PHP_EOL
-			);
-		}
+			// Protect directory from direct access.
+			$htaccess = $dir . '.htaccess';
+			if ( ! file_exists( $htaccess ) ) {
+				file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+					$htaccess,
+					'Options -Indexes' . PHP_EOL . 'deny from all' . PHP_EOL
+				);
+			}
 
-		$index = $dir . 'index.php';
-		if ( ! file_exists( $index ) ) {
-			file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				$index,
-				'<?php // Silence is golden.' . PHP_EOL
-			);
+			$index = $dir . 'index.php';
+			if ( ! file_exists( $index ) ) {
+				file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+					$index,
+					'<?php // Silence is golden.' . PHP_EOL
+				);
+			}
 		}
 
 		return true;
@@ -159,10 +199,10 @@ class File_Handler {
 			);
 		}
 
-		// Ensure upload directory exists.
+		// Ensure upload directories exist.
 		self::ensure_upload_dir();
 
-		$upload_dir   = self::get_upload_dir();
+		$upload_dir   = self::get_imports_dir();
 		$target_path  = $upload_dir . $filename;
 		$file_exists  = file_exists( $target_path );
 
@@ -189,12 +229,12 @@ class File_Handler {
 	}
 
 	/**
-	 * List all files in the upload directory.
+	 * List all uploaded price list files in the imports directory.
 	 *
 	 * @return array<int, array{name: string, size: int, modified: int, url: string}> List of files.
 	 */
 	public function list_files(): array {
-		$dir = self::get_upload_dir();
+		$dir = self::get_imports_dir();
 
 		if ( ! is_dir( $dir ) ) {
 			return array();
@@ -222,7 +262,7 @@ class File_Handler {
 				'name'     => $entry,
 				'size'     => (int) filesize( $filepath ),
 				'modified' => (int) filemtime( $filepath ),
-				'url'      => self::get_upload_url() . $entry,
+				'url'      => self::get_imports_url() . $entry,
 			);
 		}
 
@@ -238,14 +278,14 @@ class File_Handler {
 	}
 
 	/**
-	 * Delete a file from the upload directory.
+	 * Delete a file from the imports directory.
 	 *
 	 * @param string $filename Filename (basename only, no path traversal allowed).
 	 * @return bool|\WP_Error True on success, WP_Error on failure.
 	 */
 	public function delete_file( string $filename ): bool|\WP_Error {
 		$filename = sanitize_file_name( $filename );
-		$filepath = self::get_upload_dir() . $filename;
+		$filepath = self::get_imports_dir() . $filename;
 
 		if ( ! file_exists( $filepath ) ) {
 			return new \WP_Error(
@@ -269,14 +309,45 @@ class File_Handler {
 	}
 
 	/**
-	 * Get the full path to a file in the upload directory.
+	 * Delete an exported output CSV from the exports directory.
+	 *
+	 * @param string $filename Filename (basename only, no path traversal allowed).
+	 * @return bool|\WP_Error True on success, WP_Error on failure.
+	 */
+	public function delete_export( string $filename ): bool|\WP_Error {
+		$filename = sanitize_file_name( $filename );
+		$filepath = self::get_exports_dir() . $filename;
+
+		if ( ! file_exists( $filepath ) ) {
+			return new \WP_Error(
+				'wc_sec_file_not_found',
+				sprintf(
+					/* translators: %s: filename */
+					__( 'File "%s" not found.', 'wc-sku-ean-comparator' ),
+					esc_html( $filename )
+				)
+			);
+		}
+
+		if ( ! unlink( $filepath ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			return new \WP_Error(
+				'wc_sec_delete_failed',
+				__( 'Failed to delete file.', 'wc-sku-ean-comparator' )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Get the full path to an uploaded file in the imports directory.
 	 *
 	 * @param string $filename Filename (basename only).
 	 * @return string|\WP_Error Full path or WP_Error if not found.
 	 */
 	public function get_file_path( string $filename ): string|\WP_Error {
 		$filename = sanitize_file_name( $filename );
-		$filepath = self::get_upload_dir() . $filename;
+		$filepath = self::get_imports_dir() . $filename;
 
 		if ( ! file_exists( $filepath ) ) {
 			return new \WP_Error(
@@ -526,7 +597,7 @@ class File_Handler {
 	}
 
 	/**
-	 * Write rows to a CSV file in the upload directory.
+	 * Write rows to an output CSV file in the exports directory.
 	 *
 	 * @param string                        $filename Filename (basename).
 	 * @param array<int, array<int|string, string>> $rows     Rows to write (first row = headers).
@@ -534,7 +605,7 @@ class File_Handler {
 	 */
 	public function write_csv( string $filename, array $rows ): string|\WP_Error {
 		self::ensure_upload_dir();
-		$filepath = self::get_upload_dir() . sanitize_file_name( $filename );
+		$filepath = self::get_exports_dir() . sanitize_file_name( $filename );
 
 		$handle = fopen( $filepath, 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 

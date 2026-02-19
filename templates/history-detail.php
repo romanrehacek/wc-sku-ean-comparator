@@ -17,10 +17,10 @@ $brand_slugs   = is_array( $comparison['brand_slugs'] ) ? $comparison['brand_slu
 $column_mapping = is_array( $comparison['column_mapping'] ) ? $comparison['column_mapping'] : array();
 
 $csv1_url = ! empty( $comparison['csv_pricelist_to_shop'] )
-	? WC_SKU_EAN_Comparator\File_Handler::get_upload_url() . $comparison['csv_pricelist_to_shop']
+	? WC_SKU_EAN_Comparator\File_Handler::get_exports_url() . $comparison['csv_pricelist_to_shop']
 	: '';
 $csv2_url = ! empty( $comparison['csv_shop_to_pricelist'] )
-	? WC_SKU_EAN_Comparator\File_Handler::get_upload_url() . $comparison['csv_shop_to_pricelist']
+	? WC_SKU_EAN_Comparator\File_Handler::get_exports_url() . $comparison['csv_shop_to_pricelist']
 	: '';
 
 $pl_total     = isset( $stats['pricelist_total'] ) ? (int) $stats['pricelist_total'] : 0;

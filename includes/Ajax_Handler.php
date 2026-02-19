@@ -384,8 +384,8 @@ class Ajax_Handler {
 		$response = array(
 			'comparison_id'      => is_wp_error( $comparison_id ) ? 0 : $comparison_id,
 			'stats'              => $stats,
-			'csv_pricelist_url'  => ( ! is_wp_error( $csv1_path ) ) ? ( File_Handler::get_upload_url() . $csv1_filename ) : null,
-			'csv_shop_url'       => ( ! is_wp_error( $csv2_path ) ) ? ( File_Handler::get_upload_url() . $csv2_filename ) : null,
+			'csv_pricelist_url'  => ( ! is_wp_error( $csv1_path ) ) ? ( File_Handler::get_exports_url() . $csv1_filename ) : null,
+			'csv_shop_url'       => ( ! is_wp_error( $csv2_path ) ) ? ( File_Handler::get_exports_url() . $csv2_filename ) : null,
 			'history_url'        => Admin_Page::get_history_detail_url( is_wp_error( $comparison_id ) ? 0 : $comparison_id ),
 			'pricelist_rows'     => $pricelist_result['rows'],
 			'shop_rows'          => $shop_result['rows'],
@@ -465,10 +465,10 @@ class Ajax_Handler {
 			wp_send_json_error( array( 'message' => __( 'Comparison not found.', 'wc-sku-ean-comparator' ) ) );
 		}
 
-		// Delete associated CSV files.
+		// Delete associated CSV output files.
 		foreach ( array( 'csv_pricelist_to_shop', 'csv_shop_to_pricelist' ) as $csv_field ) {
 			if ( ! empty( $comparison[ $csv_field ] ) ) {
-				$this->file_handler->delete_file( $comparison[ $csv_field ] );
+				$this->file_handler->delete_export( $comparison[ $csv_field ] );
 			}
 		}
 

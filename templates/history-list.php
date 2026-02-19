@@ -57,10 +57,10 @@ $total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
 					$brand_slugs   = is_array( $comparison['brand_slugs'] ) ? $comparison['brand_slugs'] : array();
 					$detail_url    = WC_SKU_EAN_Comparator\Admin_Page::get_history_detail_url( $comparison['id'] );
 					$csv1_url      = ! empty( $comparison['csv_pricelist_to_shop'] )
-						? WC_SKU_EAN_Comparator\File_Handler::get_upload_url() . $comparison['csv_pricelist_to_shop']
+						? WC_SKU_EAN_Comparator\File_Handler::get_exports_url() . $comparison['csv_pricelist_to_shop']
 						: '';
 					$csv2_url      = ! empty( $comparison['csv_shop_to_pricelist'] )
-						? WC_SKU_EAN_Comparator\File_Handler::get_upload_url() . $comparison['csv_shop_to_pricelist']
+						? WC_SKU_EAN_Comparator\File_Handler::get_exports_url() . $comparison['csv_shop_to_pricelist']
 						: '';
 					?>
 					<tr>
