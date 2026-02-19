@@ -254,10 +254,21 @@ class Ajax_Handler {
 		$headers      = $rows[0];
 		$preview_rows = array_slice( $rows, 1 );
 
+		// Also fetch the raw rows that appear before the header row so the
+		// preview table can show all rows (with the header row highlighted).
+		$pre_header_rows = array();
+		if ( $effective_header_row > 1 ) {
+			$raw = $this->file_handler->parse_sheet_or_csv_raw( $filepath, $sheet_index, $effective_header_row - 1 );
+			if ( ! is_wp_error( $raw ) ) {
+				$pre_header_rows = $raw;
+			}
+		}
+
 		wp_send_json_success(
 			array(
 				'headers'             => $headers,
 				'preview_rows'        => $preview_rows,
+				'pre_header_rows'     => $pre_header_rows,
 				'column_count'        => count( $headers ),
 				'detected_header_row' => $effective_header_row,
 			)

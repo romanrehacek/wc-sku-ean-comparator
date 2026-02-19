@@ -502,7 +502,7 @@
 			state.headers     = response.data.headers;
 			state.previewRows = response.data.preview_rows;
 
-			renderPreviewTable( state.headers, state.previewRows );
+			renderPreviewTable( state.headers, state.previewRows, response.data.pre_header_rows || [] );
 			renderColumnSelectors( state.headers );
 
 			$( '#wc-sec-preview-wrap' ).removeClass( 'hidden' );
@@ -520,30 +520,33 @@
 		loadColumns();
 	} );
 
-	function renderPreviewTable( headers, rows ) {
-		var $head      = $( '#wc-sec-preview-header' ).empty();
-		var $body      = $( '#wc-sec-preview-body' ).empty();
-		var headerRow  = state.headerRow || 1;
+	function renderPreviewTable( headers, rows, preHeaderRows ) {
+		var $head     = $( '#wc-sec-preview-header' ).empty();
+		var $body     = $( '#wc-sec-preview-body' ).empty();
+		var headerRow = state.headerRow || 1;
 
-		// Row-number column header.
-		$head.append( '<th class="wc-sec-row-num">#</th>' );
-		$.each( headers, function ( i, h ) {
-			$head.append( '<th>' + escHtml( h ) + '</th>' );
+		// Rows that appear before the detected header row (shown as plain rows).
+		$.each( preHeaderRows, function ( i, row ) {
+			var $tr = $( '<tr>' );
+			$tr.append( '<td class="wc-sec-row-num">' + ( i + 1 ) + '</td>' );
+			$.each( row, function ( j, cell ) {
+				$tr.append( '<td>' + escHtml( cell ) + '</td>' );
+			} );
+			$body.append( $tr );
 		} );
 
-		// Header row (highlighted).
+		// The header row itself — highlighted.
 		var $headerTr = $( '<tr class="wc-sec-preview-header-row">' );
-		$headerTr.append( '<td class="wc-sec-row-num wc-sec-row-num--header">' + headerRow + '</td>' );
+		$headerTr.append( '<td class="wc-sec-row-num">' + headerRow + '</td>' );
 		$.each( headers, function ( i, h ) {
 			$headerTr.append( '<td><strong>' + escHtml( h ) + '</strong></td>' );
 		} );
 		$body.append( $headerTr );
 
-		// Data rows.
+		// Data rows after the header.
 		$.each( rows, function ( i, row ) {
-			var $tr     = $( '<tr>' );
-			var rowNum  = headerRow + 1 + i;
-			$tr.append( '<td class="wc-sec-row-num">' + rowNum + '</td>' );
+			var $tr = $( '<tr>' );
+			$tr.append( '<td class="wc-sec-row-num">' + ( headerRow + 1 + i ) + '</td>' );
 			$.each( row, function ( j, cell ) {
 				$tr.append( '<td>' + escHtml( cell ) + '</td>' );
 			} );
