@@ -153,20 +153,28 @@ class History {
 	/**
 	 * Get a paginated list of comparison records.
 	 *
-	 * @param int $page     Current page (1-based).
-	 * @param int $per_page Items per page.
+	 * @param int    $page     Current page (1-based).
+	 * @param int    $per_page Items per page.
+	 * @param string $orderby  Column to sort by ('id', 'file_name', 'created_at'). Default 'created_at'.
+	 * @param string $order    Sort direction ('ASC' or 'DESC'). Default 'DESC'.
 	 * @return array<int, array<string, mixed>> List of records.
 	 */
-	public function get_list( int $page = 1, int $per_page = 20 ): array {
+	public function get_list( int $page = 1, int $per_page = 20, string $orderby = 'created_at', string $order = 'DESC' ): array {
 		global $wpdb;
 
 		$table_name = self::get_table_name();
 		$offset     = ( max( 1, $page ) - 1 ) * $per_page;
 
+		// Whitelist sortable columns to prevent SQL injection.
+		$allowed_orderby = array( 'id', 'file_name', 'created_at' );
+		$orderby_safe    = in_array( $orderby, $allowed_orderby, true ) ? $orderby : 'created_at';
+		$order_safe      = 'ASC' === strtoupper( $order ) ? 'ASC' : 'DESC';
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, file_name, created_at, brand_slugs, stats, csv_pricelist_to_shop, csv_shop_to_pricelist FROM {$table_name} ORDER BY created_at DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT id, file_name, created_at, brand_slugs, stats, csv_pricelist_to_shop, csv_shop_to_pricelist FROM {$table_name} ORDER BY {$orderby_safe} {$order_safe} LIMIT %d OFFSET %d",
 				$per_page,
 				$offset
 			),

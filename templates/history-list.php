@@ -7,6 +7,8 @@
  *   $total        int                               Total number of records.
  *   $paged        int                               Current page number.
  *   $per_page     int                               Items per page.
+ *   $orderby      string                            Current sort column.
+ *   $order        string                            Current sort direction ('ASC'|'DESC').
  *
  * @package WC_SKU_EAN_Comparator
  */
@@ -16,6 +18,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
+
+// Ensure sort vars exist with safe defaults.
+$orderby = isset( $orderby ) ? $orderby : 'created_at';
+$order   = isset( $order ) ? $order : 'DESC';
+
+/**
+ * Build a sortable column header URL.
+ *
+ * @param string $col     Column key.
+ * @param string $current Current orderby.
+ * @param string $dir     Current order direction.
+ * @return array{ url: string, direction: string, active: bool }
+ */
+$sortable_col = static function ( string $col ) use ( $orderby, $order ): array {
+	$is_active = $col === $orderby;
+	// Clicking an active col reverses direction; clicking a new col defaults to DESC.
+	$new_order = ( $is_active && 'DESC' === $order ) ? 'ASC' : 'DESC';
+	$url       = add_query_arg(
+		array(
+			'page'    => WC_SKU_EAN_Comparator\Admin_Page::HISTORY_SLUG,
+			'orderby' => $col,
+			'order'   => $new_order,
+			'paged'   => 1,
+		),
+		admin_url( 'tools.php' )
+	);
+	return array( 'url' => $url, 'direction' => $new_order, 'active' => $is_active, 'current_order' => $order );
+};
 ?>
 <div class="wrap wc-sec-wrap">
 	<h1 class="wp-heading-inline">
@@ -40,9 +70,29 @@ $total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
 		<table class="wp-list-table widefat fixed striped wc-sec-history-table">
 			<thead>
 				<tr>
-					<th scope="col" class="column-id"><?php esc_html_e( 'ID', 'wc-sku-ean-comparator' ); ?></th>
-					<th scope="col" class="column-filename"><?php esc_html_e( 'Price List File', 'wc-sku-ean-comparator' ); ?></th>
-					<th scope="col" class="column-date"><?php esc_html_e( 'Date', 'wc-sku-ean-comparator' ); ?></th>
+					<?php
+					$col_id   = $sortable_col( 'id' );
+					$col_file = $sortable_col( 'file_name' );
+					$col_date = $sortable_col( 'created_at' );
+					?>
+					<th scope="col" class="column-id<?php echo $col_id['active'] ? ' sorted' : ' sortable'; ?>">
+						<a href="<?php echo esc_url( $col_id['url'] ); ?>">
+							<span><?php esc_html_e( 'ID', 'wc-sku-ean-comparator' ); ?></span>
+							<span class="sorting-indicator"></span>
+						</a>
+					</th>
+					<th scope="col" class="column-filename<?php echo $col_file['active'] ? ' sorted' : ' sortable'; ?>">
+						<a href="<?php echo esc_url( $col_file['url'] ); ?>">
+							<span><?php esc_html_e( 'Price List File', 'wc-sku-ean-comparator' ); ?></span>
+							<span class="sorting-indicator"></span>
+						</a>
+					</th>
+					<th scope="col" class="column-date<?php echo $col_date['active'] ? ' sorted' : ' sortable'; ?>">
+						<a href="<?php echo esc_url( $col_date['url'] ); ?>">
+							<span><?php esc_html_e( 'Date', 'wc-sku-ean-comparator' ); ?></span>
+							<span class="sorting-indicator"></span>
+						</a>
+					</th>
 					<th scope="col" class="column-brands"><?php esc_html_e( 'Brands', 'wc-sku-ean-comparator' ); ?></th>
 					<th scope="col" class="column-stats"><?php esc_html_e( 'Pricelist Rows', 'wc-sku-ean-comparator' ); ?></th>
 					<th scope="col" class="column-stats"><?php esc_html_e( 'Shop Products', 'wc-sku-ean-comparator' ); ?></th>
@@ -153,17 +203,24 @@ $total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
 								<em><?php esc_html_e( 'N/A', 'wc-sku-ean-comparator' ); ?></em>
 							<?php endif; ?>
 						</td>
-						<td class="column-actions">
-							<a href="<?php echo esc_url( $detail_url ); ?>" class="button button-small">
-								<?php esc_html_e( 'View', 'wc-sku-ean-comparator' ); ?>
-							</a>
-							<button type="button"
-								class="button button-small wc-sec-delete-comparison-btn"
-								data-id="<?php echo esc_attr( $comparison['id'] ); ?>"
-								data-nonce="<?php echo esc_attr( wp_create_nonce( 'wc_sec_ajax' ) ); ?>">
-								<?php esc_html_e( 'Delete', 'wc-sku-ean-comparator' ); ?>
-							</button>
-						</td>
+					<td class="column-actions">
+						<a href="<?php echo esc_url( $detail_url ); ?>" class="button button-small">
+							<?php esc_html_e( 'View', 'wc-sku-ean-comparator' ); ?>
+						</a>
+						<button type="button"
+							class="button button-small wc-sec-rerun-comparison-btn"
+							data-id="<?php echo esc_attr( $comparison['id'] ); ?>"
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'wc_sec_ajax' ) ); ?>"
+							data-redirect="<?php echo esc_attr( WC_SKU_EAN_Comparator\Admin_Page::get_history_detail_url( $comparison['id'] ) ); ?>">
+							<?php esc_html_e( 'Re-run', 'wc-sku-ean-comparator' ); ?>
+						</button>
+						<button type="button"
+							class="button button-small wc-sec-delete-comparison-btn"
+							data-id="<?php echo esc_attr( $comparison['id'] ); ?>"
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'wc_sec_ajax' ) ); ?>">
+							<?php esc_html_e( 'Delete', 'wc-sku-ean-comparator' ); ?>
+						</button>
+					</td>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
@@ -173,13 +230,13 @@ $total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
 			<div class="tablenav bottom">
 				<div class="tablenav-pages">
 					<?php
-					$page_links = paginate_links(
-						array(
-							'base'      => add_query_arg( 'paged', '%#%' ),
-							'format'    => '',
-							'prev_text' => '&laquo;',
-							'next_text' => '&raquo;',
-							'total'     => $total_pages,
+				$page_links = paginate_links(
+					array(
+						'base'      => add_query_arg( array( 'paged' => '%#%', 'orderby' => $orderby, 'order' => $order ) ),
+						'format'    => '',
+						'prev_text' => '&laquo;',
+						'next_text' => '&raquo;',
+						'total'     => $total_pages,
 							'current'   => $paged,
 						)
 					);

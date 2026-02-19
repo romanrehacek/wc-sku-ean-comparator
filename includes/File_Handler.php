@@ -119,9 +119,19 @@ class File_Handler {
 				return false;
 			}
 
-			// Protect directory from direct access.
-			$htaccess = $dir . '.htaccess';
-			if ( ! file_exists( $htaccess ) ) {
+			// The exports directory must remain publicly accessible (CSVs are downloaded
+			// directly via URL). We block only directory listing there.
+			// The base and imports directories are fully blocked from direct access.
+			$is_exports = ( $dir === $exports_dir );
+			$htaccess   = $dir . '.htaccess';
+
+			if ( $is_exports ) {
+				// Always write exports .htaccess to correct any previously written "deny from all".
+				file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+					$htaccess,
+					'Options -Indexes' . PHP_EOL
+				);
+			} elseif ( ! file_exists( $htaccess ) ) {
 				file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 					$htaccess,
 					'Options -Indexes' . PHP_EOL . 'deny from all' . PHP_EOL

@@ -382,6 +382,42 @@
 	white-space: nowrap;
 }
 
+/* Row number column */
+.wc-sec-table th.wc-sec-row-num,
+.wc-sec-table td.wc-sec-row-num {
+	width: 36px;
+	min-width: 36px;
+	max-width: 36px;
+	text-align: center;
+	padding: 8px 6px;
+	font-size: 11px;
+	color: #9ca3af;
+	background: #f9fafb;
+	border-right: 1px solid #e5e7eb;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.wc-sec-table th.wc-sec-row-num {
+	font-weight: 600;
+	color: #6b7280;
+}
+
+/* Highlighted header row */
+.wc-sec-table tr.wc-sec-preview-header-row > td {
+	background: #fffbeb;
+	border-top: 2px solid #f59e0b;
+	border-bottom: 2px solid #f59e0b;
+}
+
+.wc-sec-table tr.wc-sec-preview-header-row > td.wc-sec-row-num--header {
+	background: #f59e0b;
+	color: #fff;
+	font-weight: 700;
+	font-size: 12px;
+	border-right: 1px solid #d97706;
+}
+
 /* ==========================================================================
    Result Tabs
    ========================================================================== */

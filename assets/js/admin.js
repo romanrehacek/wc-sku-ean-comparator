@@ -81,6 +81,22 @@
 		return Number( n ).toLocaleString();
 	}
 
+	/**
+	 * Format a byte count as a human-readable file size.
+	 *
+	 * @param {number} bytes
+	 * @return {string}
+	 */
+	function formatFileSize( bytes ) {
+		if ( bytes >= 1048576 ) {
+			return ( bytes / 1048576 ).toFixed( 1 ) + ' MB';
+		}
+		if ( bytes >= 1024 ) {
+			return ( bytes / 1024 ).toFixed( 1 ) + ' KB';
+		}
+		return bytes + ' B';
+	}
+
 	// =========================================================================
 	// Step navigation
 	// =========================================================================
@@ -148,11 +164,12 @@
 
 			var html = '<ul class="wc-sec-file-list">';
 			$.each( response.data.files, function ( i, file ) {
-				var ext   = file.name.split( '.' ).pop().toLowerCase();
-				var mtime = file.modified ? new Date( file.modified * 1000 ).toLocaleString() : '';
-				html += '<li class="wc-sec-file-item" data-name="' + escHtml( file.name ) + '" data-ext="' + ext + '">' +
-					'<span class="wc-sec-file-item__name">' + escHtml( file.name ) + '</span>' +
-					'<span class="wc-sec-file-item__meta">' + escHtml( mtime ) + '</span>' +
+			var ext   = file.name.split( '.' ).pop().toLowerCase();
+			var mtime = file.modified ? new Date( file.modified * 1000 ).toLocaleString() : '';
+			var size  = file.size ? formatFileSize( file.size ) : '';
+			html += '<li class="wc-sec-file-item" data-name="' + escHtml( file.name ) + '" data-ext="' + ext + '">' +
+				'<span class="wc-sec-file-item__name">' + escHtml( file.name ) + '</span>' +
+				'<span class="wc-sec-file-item__meta">' + escHtml( size ) + ( size && mtime ? ' &mdash; ' : '' ) + escHtml( mtime ) + '</span>' +
 					'<span class="wc-sec-file-item__actions">' +
 						'<button type="button" class="button button-small wc-sec-delete-file-btn" data-name="' + escHtml( file.name ) + '">Delete</button>' +
 					'</span>' +
@@ -304,17 +321,22 @@
 
 	function fetchSheetNames( filename ) {
 		$.post( data.ajaxUrl, {
-			action: 'wc_sec_get_columns',
+			action: 'wc_sec_get_sheet_names',
 			nonce: data.nonce,
-			filename: filename,
-			sheet_index: 0
+			filename: filename
 		} ).done( function ( response ) {
-			// We just needed sheet names — but wc_sec_get_columns returns columns.
-			// For XLS/XLSX the upload response provides sheet_names already.
-			// Here we just enable Next if we got a valid response.
-			if ( response.success ) {
+			if ( response.success && response.data.sheet_names && response.data.sheet_names.length ) {
+				state.sheetNames = response.data.sheet_names;
+				showSheetSelector( state.sheetNames );
+			} else {
+				// Single-sheet or unknown — proceed without sheet selector.
+				$( '#wc-sec-sheet-selection' ).addClass( 'hidden' );
 				$( '#wc-sec-step1-next' ).prop( 'disabled', false );
 			}
+		} ).fail( function () {
+			// Fallback: allow proceeding without sheet selection.
+			$( '#wc-sec-sheet-selection' ).addClass( 'hidden' );
+			$( '#wc-sec-step1-next' ).prop( 'disabled', false );
 		} );
 	}
 
@@ -499,15 +521,29 @@
 	} );
 
 	function renderPreviewTable( headers, rows ) {
-		var $head = $( '#wc-sec-preview-header' ).empty();
-		var $body = $( '#wc-sec-preview-body' ).empty();
+		var $head      = $( '#wc-sec-preview-header' ).empty();
+		var $body      = $( '#wc-sec-preview-body' ).empty();
+		var headerRow  = state.headerRow || 1;
 
+		// Row-number column header.
+		$head.append( '<th class="wc-sec-row-num">#</th>' );
 		$.each( headers, function ( i, h ) {
 			$head.append( '<th>' + escHtml( h ) + '</th>' );
 		} );
 
+		// Header row (highlighted).
+		var $headerTr = $( '<tr class="wc-sec-preview-header-row">' );
+		$headerTr.append( '<td class="wc-sec-row-num wc-sec-row-num--header">' + headerRow + '</td>' );
+		$.each( headers, function ( i, h ) {
+			$headerTr.append( '<td><strong>' + escHtml( h ) + '</strong></td>' );
+		} );
+		$body.append( $headerTr );
+
+		// Data rows.
 		$.each( rows, function ( i, row ) {
-			var $tr = $( '<tr>' );
+			var $tr     = $( '<tr>' );
+			var rowNum  = headerRow + 1 + i;
+			$tr.append( '<td class="wc-sec-row-num">' + rowNum + '</td>' );
 			$.each( row, function ( j, cell ) {
 				$tr.append( '<td>' + escHtml( cell ) + '</td>' );
 			} );
@@ -650,18 +686,18 @@
 
 	function renderStats( stats ) {
 		var html = '<div class="wc-sec-stat-card">' +
-			'<h3>Pricelist &rarr; Shop</h3>' +
+			'<h3>' + escHtml( data.i18n.pricelistToShop ) + '</h3>' +
 			'<div class="wc-sec-stat-numbers">' +
-			statItem( stats.pricelist_total, 'Total rows', '' ) +
-			statItem( stats.pricelist_matched, 'Found in shop', 'success' ) +
-			statItem( stats.pricelist_unmatched, 'Not found', 'warning' ) +
+			statItem( stats.pricelist_total, data.i18n.totalRows, '' ) +
+			statItem( stats.pricelist_matched, data.i18n.foundInShop, 'success' ) +
+			statItem( stats.pricelist_unmatched, data.i18n.notFound, 'warning' ) +
 			'</div></div>' +
 			'<div class="wc-sec-stat-card">' +
-			'<h3>Shop &rarr; Pricelist</h3>' +
+			'<h3>' + escHtml( data.i18n.shopToPricelist ) + '</h3>' +
 			'<div class="wc-sec-stat-numbers">' +
-			statItem( stats.shop_total, 'Shop products', '' ) +
-			statItem( stats.shop_matched, 'In pricelist', 'success' ) +
-			statItem( stats.shop_unmatched, 'Not in pricelist', 'warning' ) +
+			statItem( stats.shop_total, data.i18n.shopProducts, '' ) +
+			statItem( stats.shop_matched, data.i18n.inPricelist, 'success' ) +
+			statItem( stats.shop_unmatched, data.i18n.notInPricelist, 'warning' ) +
 			'</div></div>';
 
 		$( '#wc-sec-stats-wrap' ).html( html );
@@ -682,10 +718,10 @@
 	function renderCsvLinks( url1, url2 ) {
 		var html = '';
 		if ( url1 ) {
-			html += '<a href="' + escHtml( url1 ) + '" class="button" download>&#8595; Download Pricelist&rarr;Shop CSV</a> ';
+			html += '<a href="' + escHtml( url1 ) + '" class="button" download>&#8595; ' + escHtml( data.i18n.downloadPricelist ) + '</a> ';
 		}
 		if ( url2 ) {
-			html += '<a href="' + escHtml( url2 ) + '" class="button" download>&#8595; Download Shop&rarr;Pricelist CSV</a>';
+			html += '<a href="' + escHtml( url2 ) + '" class="button" download>&#8595; ' + escHtml( data.i18n.downloadShop ) + '</a>';
 		}
 		$( '#wc-sec-csv-links' ).html( html );
 	}
@@ -1077,6 +1113,44 @@
 			} );
 		} );
 	}
+
+	// =========================================================================
+	// Re-run comparison (history list & detail)
+	// =========================================================================
+
+	$( document ).on( 'click', '.wc-sec-rerun-comparison-btn', function () {
+		var $btn       = $( this );
+		var id         = $btn.data( 'id' );
+		var nonce      = $btn.data( 'nonce' );
+		var redirectTo = $btn.data( 'redirect' ) || '';
+
+		$btn.prop( 'disabled', true ).text( data.i18n.processing );
+		showNotice( escHtml( data.i18n.processing ), '', '#wc-sec-detail-notice' );
+
+		$.post( data.ajaxUrl, {
+			action: 'wc_sec_rerun_comparison',
+			nonce: nonce,
+			comparison_id: id
+		} ).done( function ( response ) {
+			if ( response.success ) {
+				if ( redirectTo ) {
+					window.location.href = redirectTo;
+				} else if ( response.data && response.data.detail_url ) {
+					// On detail page: reload to show fresh stats.
+					window.location.href = response.data.detail_url;
+				} else {
+					window.location.reload();
+				}
+			} else {
+				var msg = response.data && response.data.message ? response.data.message : data.i18n.error;
+				showNotice( escHtml( msg ), 'error', '#wc-sec-detail-notice' );
+				$btn.prop( 'disabled', false ).text( data.i18n.rerun );
+			}
+		} ).fail( function () {
+			showNotice( escHtml( data.i18n.error ), 'error', '#wc-sec-detail-notice' );
+			$btn.prop( 'disabled', false ).text( data.i18n.rerun );
+		} );
+	} );
 
 	// =========================================================================
 	// Init

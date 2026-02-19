@@ -84,9 +84,11 @@ class Plugin {
 		add_action( 'wp_ajax_wc_sec_upload_file', array( $this->ajax_handler, 'handle_upload_file' ) );
 		add_action( 'wp_ajax_wc_sec_list_files', array( $this->ajax_handler, 'handle_list_files' ) );
 		add_action( 'wp_ajax_wc_sec_delete_file', array( $this->ajax_handler, 'handle_delete_file' ) );
+		add_action( 'wp_ajax_wc_sec_get_sheet_names', array( $this->ajax_handler, 'handle_get_sheet_names' ) );
 		add_action( 'wp_ajax_wc_sec_get_columns', array( $this->ajax_handler, 'handle_get_columns' ) );
 		add_action( 'wp_ajax_wc_sec_get_brands', array( $this->ajax_handler, 'handle_get_brands' ) );
 		add_action( 'wp_ajax_wc_sec_run_comparison', array( $this->ajax_handler, 'handle_run_comparison' ) );
+		add_action( 'wp_ajax_wc_sec_rerun_comparison', array( $this->ajax_handler, 'handle_rerun_comparison' ) );
 		add_action( 'wp_ajax_wc_sec_get_results', array( $this->ajax_handler, 'handle_get_results' ) );
 		add_action( 'wp_ajax_wc_sec_delete_comparison', array( $this->ajax_handler, 'handle_delete_comparison' ) );
 	}

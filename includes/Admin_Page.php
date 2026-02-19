@@ -138,6 +138,20 @@ class Admin_Page {
 					'selectFile'         => __( 'Please select a file.', 'wc-sku-ean-comparator' ),
 					'selectBrand'        => __( 'Please select at least one brand.', 'wc-sku-ean-comparator' ),
 					'selectSkuColumn'    => __( 'Please select at least one SKU column.', 'wc-sku-ean-comparator' ),
+					'rerun'              => __( 'Re-run Comparison', 'wc-sku-ean-comparator' ),
+					// Stats card labels (Pricelist → Shop).
+					'pricelistToShop'     => __( 'Pricelist → Shop', 'wc-sku-ean-comparator' ),
+					'totalRows'           => __( 'Total rows', 'wc-sku-ean-comparator' ),
+					'foundInShop'         => __( 'Found in shop', 'wc-sku-ean-comparator' ),
+					'notFound'            => __( 'Not found', 'wc-sku-ean-comparator' ),
+					// Stats card labels (Shop → Pricelist).
+					'shopToPricelist'     => __( 'Shop → Pricelist', 'wc-sku-ean-comparator' ),
+					'shopProducts'        => __( 'Shop products', 'wc-sku-ean-comparator' ),
+					'inPricelist'         => __( 'In pricelist', 'wc-sku-ean-comparator' ),
+					'notInPricelist'      => __( 'Not in pricelist', 'wc-sku-ean-comparator' ),
+					// CSV download link labels.
+					'downloadPricelist'   => __( 'Download Pricelist→Shop CSV', 'wc-sku-ean-comparator' ),
+					'downloadShop'        => __( 'Download Shop→Pricelist CSV', 'wc-sku-ean-comparator' ),
 				),
 			)
 		);
@@ -185,9 +199,16 @@ class Admin_Page {
 
 			$template = WC_SEC_PLUGIN_DIR . 'templates/history-detail.php';
 		} else {
-			$paged       = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1;
-			$per_page    = 20;
-			$comparisons = $this->history->get_list( $paged, $per_page );
+			$paged    = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1;
+			$per_page = 20;
+
+			// Sanitize sort parameters; defaults match History::get_list() defaults.
+			$allowed_orderby = array( 'id', 'file_name', 'created_at' );
+			$orderby         = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'created_at';
+			$orderby         = in_array( $orderby, $allowed_orderby, true ) ? $orderby : 'created_at';
+			$order           = isset( $_GET['order'] ) && 'asc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'ASC' : 'DESC';
+
+			$comparisons = $this->history->get_list( $paged, $per_page, $orderby, $order );
 			$total       = $this->history->get_total_count();
 			$template    = WC_SEC_PLUGIN_DIR . 'templates/history-list.php';
 		}

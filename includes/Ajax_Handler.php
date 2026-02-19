@@ -113,7 +113,11 @@ class Ajax_Handler {
 		$result = $this->file_handler->handle_upload( $_FILES['file'], $overwrite );
 
 		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+			$extra = array( 'message' => $result->get_error_message() );
+			if ( 'wc_sec_file_exists' === $result->get_error_code() ) {
+				$extra['exists'] = true;
+			}
+			wp_send_json_error( $extra );
 		}
 
 		$filename  = $result;
@@ -167,6 +171,37 @@ class Ajax_Handler {
 		}
 
 		wp_send_json_success( array( 'message' => __( 'File deleted successfully.', 'wc-sku-ean-comparator' ) ) );
+	}
+
+	/**
+	 * Get sheet names from an existing XLS/XLSX file (wp_ajax_wc_sec_get_sheet_names).
+	 *
+	 * Expects: $_POST['filename'].
+	 *
+	 * @return void
+	 */
+	public function handle_get_sheet_names(): void {
+		$this->verify_request();
+
+		$filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
+
+		if ( '' === $filename ) {
+			wp_send_json_error( array( 'message' => __( 'Filename is required.', 'wc-sku-ean-comparator' ) ) );
+		}
+
+		$filepath = $this->file_handler->get_file_path( $filename );
+
+		if ( is_wp_error( $filepath ) ) {
+			wp_send_json_error( array( 'message' => $filepath->get_error_message() ) );
+		}
+
+		$sheet_names = $this->file_handler->get_sheet_names( $filepath );
+
+		if ( is_wp_error( $sheet_names ) ) {
+			wp_send_json_error( array( 'message' => $sheet_names->get_error_message() ) );
+		}
+
+		wp_send_json_success( array( 'sheet_names' => $sheet_names ) );
 	}
 
 	/**
@@ -330,6 +365,22 @@ class Ajax_Handler {
 			wp_send_json_error( array( 'message' => __( 'The file contains no data rows.', 'wc-sku-ean-comparator' ) ) );
 		}
 
+		// Enrich column_mapping with human-readable header names for history display.
+		$file_headers = $rows[0] ?? array();
+		$resolve_names = static function ( array $indices ) use ( $file_headers ): array {
+			return array_values(
+				array_map(
+					static fn( int $idx ) => isset( $file_headers[ $idx ] ) && $file_headers[ $idx ] !== ''
+						? $file_headers[ $idx ]
+						: (string) $idx,
+					$indices
+				)
+			);
+		};
+		$column_mapping['sku_column_names']  = $resolve_names( $column_mapping['sku_columns'] );
+		$column_mapping['ean_column_names']  = $resolve_names( $column_mapping['ean_columns'] );
+		$column_mapping['name_column_names'] = $resolve_names( $column_mapping['name_columns'] );
+
 		// Load product maps (filtered by brands if specified).
 		$product_maps = $this->comparator->load_product_maps( $brand_slugs );
 
@@ -441,6 +492,144 @@ class Ajax_Handler {
 				'total_pages' => (int) ceil( $total / $per_page ),
 			)
 		);
+	}
+
+	/**
+	 * Re-run a comparison from history (wp_ajax_wc_sec_rerun_comparison).
+	 *
+	 * Expects: $_POST['comparison_id'].
+	 *
+	 * Re-parses the original file with the stored parameters, runs the comparison
+	 * again, overwrites the old CSV output files, and updates the history record.
+	 *
+	 * @return void
+	 */
+	public function handle_rerun_comparison(): void {
+		$this->verify_request();
+
+		$comparison_id = isset( $_POST['comparison_id'] ) ? absint( $_POST['comparison_id'] ) : 0;
+
+		if ( $comparison_id <= 0 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid comparison ID.', 'wc-sku-ean-comparator' ) ) );
+		}
+
+		$comparison = $this->history->get( $comparison_id );
+
+		if ( ! $comparison ) {
+			wp_send_json_error( array( 'message' => __( 'Comparison not found.', 'wc-sku-ean-comparator' ) ) );
+		}
+
+		// Restore stored parameters.
+		$filename       = sanitize_file_name( $comparison['file_name'] );
+		$column_mapping = $comparison['column_mapping'];
+		$brand_slugs    = is_array( $comparison['brand_slugs'] ) ? $comparison['brand_slugs'] : array();
+		$brand_slugs    = array_map( 'sanitize_key', $brand_slugs );
+		$header_row     = isset( $column_mapping['header_row'] ) ? absint( $column_mapping['header_row'] ) : 0;
+		$sheet_index    = 0; // Sheet index is not stored; default to 0.
+
+		// Validate column_mapping structure.
+		if ( ! is_array( $column_mapping ) || ! isset( $column_mapping['sku_columns'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Stored column mapping is invalid.', 'wc-sku-ean-comparator' ) ) );
+		}
+
+		// Get file path.
+		$filepath = $this->file_handler->get_file_path( $filename );
+		if ( is_wp_error( $filepath ) ) {
+			wp_send_json_error( array( 'message' => $filepath->get_error_message() ) );
+		}
+
+		// Parse file.
+		$rows = $this->file_handler->parse_file( $filepath, $sheet_index, 0, $header_row );
+		if ( is_wp_error( $rows ) ) {
+			wp_send_json_error( array( 'message' => $rows->get_error_message() ) );
+		}
+
+		if ( count( $rows ) < 2 ) {
+			wp_send_json_error( array( 'message' => __( 'The file contains no data rows.', 'wc-sku-ean-comparator' ) ) );
+		}
+
+		// Refresh header names in column_mapping from the re-parsed file.
+		$file_headers  = $rows[0] ?? array();
+		$resolve_names = static function ( array $indices ) use ( $file_headers ): array {
+			return array_values(
+				array_map(
+					static fn( int $idx ) => isset( $file_headers[ $idx ] ) && $file_headers[ $idx ] !== ''
+						? $file_headers[ $idx ]
+						: (string) $idx,
+					$indices
+				)
+			);
+		};
+		$column_mapping['sku_column_names']  = $resolve_names( (array) ( $column_mapping['sku_columns'] ?? array() ) );
+		$column_mapping['ean_column_names']  = $resolve_names( (array) ( $column_mapping['ean_columns'] ?? array() ) );
+		$column_mapping['name_column_names'] = $resolve_names( (array) ( $column_mapping['name_columns'] ?? array() ) );
+
+		// Load product maps.
+		$product_maps = $this->comparator->load_product_maps( $brand_slugs );
+
+		// Run comparisons.
+		$pricelist_result = $this->comparator->compare_pricelist_to_shop( $rows, $column_mapping, $product_maps );
+		$shop_result      = $this->comparator->compare_shop_to_pricelist( $rows, $column_mapping, $product_maps );
+
+		// Delete old CSV files before writing new ones.
+		foreach ( array( 'csv_pricelist_to_shop', 'csv_shop_to_pricelist' ) as $csv_field ) {
+			if ( ! empty( $comparison[ $csv_field ] ) ) {
+				$this->file_handler->delete_export( $comparison[ $csv_field ] );
+			}
+		}
+
+		// Write new CSVs.
+		$brand_label   = ! empty( $brand_slugs )
+			? implode( '-', array_slice( $brand_slugs, 0, 3 ) )
+			: 'all';
+
+		$csv1_filename = $this->file_handler->generate_csv_filename( $brand_label, 'pricelist-to-shop' );
+		$csv2_filename = $this->file_handler->generate_csv_filename( $brand_label, 'shop-to-pricelist' );
+
+		$csv1_rows = $this->comparator->build_pricelist_to_shop_csv( $pricelist_result );
+		$csv2_rows = $this->comparator->build_shop_to_pricelist_csv( $shop_result );
+
+		$csv1_path = $this->file_handler->write_csv( $csv1_filename, $csv1_rows );
+		$csv2_path = $this->file_handler->write_csv( $csv2_filename, $csv2_rows );
+
+		// Build updated stats.
+		$stats = array(
+			'pricelist_total'     => $pricelist_result['stats']['total'],
+			'pricelist_matched'   => $pricelist_result['stats']['matched'],
+			'pricelist_unmatched' => $pricelist_result['stats']['unmatched'],
+			'shop_total'          => $shop_result['stats']['total'],
+			'shop_matched'        => $shop_result['stats']['matched'],
+			'shop_unmatched'      => $shop_result['stats']['unmatched'],
+		);
+
+		$results_summary = array(
+			'pricelist_to_shop' => array_slice( $pricelist_result['rows'], 0, 5000 ),
+			'shop_to_pricelist' => array_slice( $shop_result['rows'], 0, 5000 ),
+		);
+
+		// Update history record.
+		$this->history->update(
+			$comparison_id,
+			array(
+				'column_mapping'        => $column_mapping,
+				'stats'                 => $stats,
+				'csv_pricelist_to_shop' => is_wp_error( $csv1_path ) ? null : $csv1_filename,
+				'csv_shop_to_pricelist' => is_wp_error( $csv2_path ) ? null : $csv2_filename,
+				'results_summary'       => wp_json_encode( $results_summary ),
+			)
+		);
+
+		$response = array(
+			'comparison_id'      => $comparison_id,
+			'stats'              => $stats,
+			'csv_pricelist_url'  => ( ! is_wp_error( $csv1_path ) ) ? ( File_Handler::get_exports_url() . $csv1_filename ) : null,
+			'csv_shop_url'       => ( ! is_wp_error( $csv2_path ) ) ? ( File_Handler::get_exports_url() . $csv2_filename ) : null,
+			'detail_url'         => Admin_Page::get_history_detail_url( $comparison_id ),
+			'pricelist_rows'     => $pricelist_result['rows'],
+			'shop_rows'          => $shop_result['rows'],
+		);
+
+		wp_send_json_success( $response );
 	}
 
 	/**

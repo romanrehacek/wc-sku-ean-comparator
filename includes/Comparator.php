@@ -44,7 +44,7 @@ class Comparator {
 	}
 
 	/**
-	 * Load SKU→ID and EAN→ID maps for WooCommerce products,
+	 * Load SKU→ID, EAN→ID, and name→ID maps for WooCommerce products,
 	 * optionally filtered by brand slugs.
 	 *
 	 * Products are fetched in batches to avoid PHP memory limits.
@@ -54,6 +54,7 @@ class Comparator {
 	 * @return array{
 	 *   sku_map: array<string, int>,
 	 *   ean_map: array<string, int>,
+	 *   name_map: array<string, int>,
 	 *   product_data: array<int, array{id: int, name: string, sku: string, ean: string}>
 	 * }
 	 */
@@ -62,6 +63,7 @@ class Comparator {
 
 		$sku_map      = array();
 		$ean_map      = array();
+		$name_map     = array();
 		$product_data = array();
 
 		// Build the base product ID query.
@@ -75,6 +77,7 @@ class Comparator {
 			return array(
 				'sku_map'      => $sku_map,
 				'ean_map'      => $ean_map,
+				'name_map'     => $name_map,
 				'product_data' => $product_data,
 			);
 		}
@@ -116,12 +119,16 @@ class Comparator {
 					$ean        = trim( (string) $row['ean'] );
 					$name       = (string) $row['post_title'];
 
-					if ( $sku !== '' ) {
-						$sku_map[ $sku ] = $product_id;
-					}
-					if ( $ean !== '' ) {
-						$ean_map[ $ean ] = $product_id;
-					}
+				if ( $sku !== '' ) {
+					$sku_map[ $sku ] = $product_id;
+				}
+				if ( $ean !== '' ) {
+					$ean_map[ $ean ] = $product_id;
+				}
+				if ( $name !== '' ) {
+					// Store lower-case normalised name for case-insensitive matching.
+					$name_map[ mb_strtolower( $name ) ] = $product_id;
+				}
 
 					$product_data[ $product_id ] = array(
 						'id'   => $product_id,
@@ -141,6 +148,7 @@ class Comparator {
 		return array(
 			'sku_map'      => $sku_map,
 			'ean_map'      => $ean_map,
+			'name_map'     => $name_map,
 			'product_data' => $product_data,
 		);
 	}
@@ -192,8 +200,8 @@ class Comparator {
 			$ean_value  = $this->extract_column_value( $row, $column_mapping['ean_columns'] );
 			$name_value = $this->extract_combined_value( $row, $column_mapping['name_columns'] );
 
-			// Try to match by SKU, then by EAN.
-			$product_id = $this->find_product_id( $sku_value, $ean_value, $product_maps );
+			// Try to match by SKU, then by EAN, then by name.
+			$product_id = $this->find_product_id( $sku_value, $ean_value, $name_value, $product_maps );
 			$found      = $product_id > 0;
 
 			if ( $found ) {
@@ -427,24 +435,34 @@ class Comparator {
 	}
 
 	/**
-	 * Find a WooCommerce product ID by SKU then EAN.
+	 * Find a WooCommerce product ID by SKU, then EAN, then product name.
 	 *
 	 * @param string  $sku          SKU value from price list.
 	 * @param string  $ean          EAN value from price list.
+	 * @param string  $name         Product name from price list.
 	 * @param array{
 	 *   sku_map: array<string, int>,
 	 *   ean_map: array<string, int>,
+	 *   name_map: array<string, int>,
 	 *   product_data: array<int, array{id: int, name: string, sku: string, ean: string}>
 	 * } $product_maps Pre-loaded product maps.
 	 * @return int Product ID, or 0 if not found.
 	 */
-	private function find_product_id( string $sku, string $ean, array $product_maps ): int {
+	private function find_product_id( string $sku, string $ean, string $name, array $product_maps ): int {
 		if ( $sku !== '' && isset( $product_maps['sku_map'][ $sku ] ) ) {
 			return $product_maps['sku_map'][ $sku ];
 		}
 
 		if ( $ean !== '' && isset( $product_maps['ean_map'][ $ean ] ) ) {
 			return $product_maps['ean_map'][ $ean ];
+		}
+
+		// Last resort: match by product name (case-insensitive).
+		if ( $name !== '' ) {
+			$name_key = mb_strtolower( $name );
+			if ( isset( $product_maps['name_map'][ $name_key ] ) ) {
+				return $product_maps['name_map'][ $name_key ];
+			}
 		}
 
 		return 0;
