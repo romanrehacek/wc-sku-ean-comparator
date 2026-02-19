@@ -1,0 +1,748 @@
+# Copyright (C) 2026 SJB Digital
+# This file is distributed under the GPL-2.0-or-later.
+# Translators:
+# Slovak translation for WC SKU/EAN Comparator
+msgid ""
+msgstr ""
+"Project-Id-Version: WC SKU/EAN Comparator 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2026-02-20 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Slovak\n"
+"Language: sk_SK\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Manual\n"
+"X-Domain: wc-sku-ean-comparator\n"
+
+#. Plugin Name of the plugin
+#: wc-sku-ean-comparator.php
+#: includes/Admin_Page.php:74
+#: includes/Admin_Page.php:75
+#: includes/Admin_Page.php:175
+#: templates/new-comparison.php:15
+msgid "WC SKU/EAN Comparator"
+msgstr "WC SKU/EAN Komparátor"
+
+#. Plugin URI of the plugin
+#: wc-sku-ean-comparator.php
+msgid "https://github.com/sjbdigital/wc-sku-ean-comparator"
+msgstr "https://github.com/sjbdigital/wc-sku-ean-comparator"
+
+#. Description of the plugin
+#: wc-sku-ean-comparator.php
+msgid "Import price lists (CSV/XLS/XLSX) and compare products against WooCommerce catalog by SKU, EAN and name. Generates output CSV files with match results."
+msgstr "Importuje cenníky (CSV/XLS/XLSX) a porovnáva produkty s katalógom WooCommerce podľa SKU, EAN a názvu. Generuje výstupné CSV súbory s výsledkami zhody."
+
+#. Author of the plugin
+#: wc-sku-ean-comparator.php
+msgid "SJB Digital"
+msgstr "SJB Digital"
+
+#. Author URI of the plugin
+#: wc-sku-ean-comparator.php
+msgid "https://sjbdigital.dev"
+msgstr "https://sjbdigital.dev"
+
+#: includes/Admin_Page.php:84
+#: includes/Admin_Page.php:85
+#: includes/Admin_Page.php:219
+#: templates/history-list.php:52
+msgid "Comparison History"
+msgstr "História porovnaní"
+
+#: includes/Admin_Page.php:131
+msgid "Are you sure you want to delete this item? This action cannot be undone."
+msgstr "Naozaj chcete odstrániť túto položku? Táto akcia sa nedá vrátiť späť."
+
+#: includes/Admin_Page.php:132
+msgid "Are you sure you want to delete this file?"
+msgstr "Naozaj chcete odstrániť tento súbor?"
+
+#: includes/Admin_Page.php:133
+msgid "Processing..."
+msgstr "Spracovávam..."
+
+#: includes/Admin_Page.php:134
+msgid "Loading products from shop..."
+msgstr "Načítavam produkty z obchodu..."
+
+#: includes/Admin_Page.php:135
+msgid "Comparing..."
+msgstr "Porovnávam..."
+
+#: includes/Admin_Page.php:136
+msgid "Done!"
+msgstr "Hotovo!"
+
+#: includes/Admin_Page.php:137
+msgid "An error occurred. Please try again."
+msgstr "Vyskytla sa chyba. Skúste to znova."
+
+#: includes/Admin_Page.php:138
+msgid "Please select a file."
+msgstr "Vyberte súbor."
+
+#: includes/Admin_Page.php:139
+msgid "Please select at least one brand."
+msgstr "Vyberte aspoň jednu značku."
+
+#: includes/Admin_Page.php:140
+msgid "Please select at least one SKU column."
+msgstr "Vyberte aspoň jeden stĺpec SKU."
+
+#: includes/Admin_Page.php:141
+#: templates/history-detail.php:253
+msgid "Re-run Comparison"
+msgstr "Spustiť porovnanie znova"
+
+#: includes/Admin_Page.php:143
+#: templates/history-detail.php:124
+#: templates/history-detail.php:175
+#: templates/new-comparison.php:248
+msgid "Pricelist → Shop"
+msgstr "Cenník → Obchod"
+
+#: includes/Admin_Page.php:144
+#: templates/history-detail.php:128
+msgid "Total rows"
+msgstr "Celkový počet riadkov"
+
+#: includes/Admin_Page.php:145
+#: templates/history-detail.php:132
+#: templates/history-list.php:164
+msgid "Found in shop"
+msgstr "Nájdené v obchode"
+
+#: includes/Admin_Page.php:146
+#: templates/history-detail.php:136
+#: templates/history-detail.php:188
+#: templates/new-comparison.php:261
+msgid "Not found"
+msgstr "Nenájdené"
+
+#: includes/Admin_Page.php:148
+#: templates/history-detail.php:147
+#: templates/history-detail.php:178
+#: templates/new-comparison.php:251
+msgid "Shop → Pricelist"
+msgstr "Obchod → Cenník"
+
+#: includes/Admin_Page.php:149
+#: templates/history-detail.php:151
+msgid "Shop products"
+msgstr "Produkty obchodu"
+
+#: includes/Admin_Page.php:150
+#: templates/history-detail.php:155
+#: templates/history-list.php:180
+msgid "In pricelist"
+msgstr "V cenníku"
+
+#: includes/Admin_Page.php:151
+#: templates/history-detail.php:159
+#: templates/history-list.php:184
+msgid "Not in pricelist"
+msgstr "Nie je v cenníku"
+
+#: includes/Admin_Page.php:153
+msgid "Download Pricelist→Shop CSV"
+msgstr "Stiahnuť CSV Cenník→Obchod"
+
+#: includes/Admin_Page.php:154
+msgid "Download Shop→Pricelist CSV"
+msgstr "Stiahnuť CSV Obchod→Cenník"
+
+#: includes/Admin_Page.php:167
+#: includes/Admin_Page.php:187
+msgid "You do not have sufficient permissions to access this page."
+msgstr "Nemáte dostatočné oprávnenia na prístup k tejto stránke."
+
+#: includes/Admin_Page.php:176
+#: includes/Admin_Page.php:220
+msgid "Template file not found."
+msgstr "Súbor šablóny nebol nájdený."
+
+#: includes/Admin_Page.php:197
+#: includes/Ajax_Handler.php:481
+#: includes/Ajax_Handler.php:530
+#: includes/Ajax_Handler.php:665
+msgid "Comparison not found."
+msgstr "Porovnanie nebolo nájdené."
+
+#: includes/Ajax_Handler.php:79
+msgid "Security check failed. Please refresh the page and try again."
+msgstr "Bezpečnostná kontrola zlyhala. Obnovte stránku a skúste to znova."
+
+#: includes/Ajax_Handler.php:86
+msgid "You do not have permission to perform this action."
+msgstr "Nemáte oprávnenie vykonať túto akciu."
+
+#: includes/Ajax_Handler.php:107
+msgid "No file provided."
+msgstr "Nebol zadaný žiadny súbor."
+
+#: includes/Ajax_Handler.php:164
+#: includes/Ajax_Handler.php:189
+#: includes/Ajax_Handler.php:223
+#: includes/Ajax_Handler.php:360
+msgid "Filename is required."
+msgstr "Názov súboru je povinný."
+
+#: includes/Ajax_Handler.php:173
+msgid "File deleted successfully."
+msgstr "Súbor bol úspešne odstránený."
+
+#: includes/Ajax_Handler.php:251
+msgid "The file appears to be empty."
+msgstr "Súbor sa zdá byť prázdny."
+
+#: includes/Ajax_Handler.php:349
+msgid "Invalid column mapping."
+msgstr "Neplatné mapovanie stĺpcov."
+
+#: includes/Ajax_Handler.php:376
+#: includes/Ajax_Handler.php:559
+msgid "The file contains no data rows."
+msgstr "Súbor neobsahuje žiadne dátové riadky."
+
+#: includes/Ajax_Handler.php:475
+#: includes/Ajax_Handler.php:524
+#: includes/Ajax_Handler.php:659
+msgid "Invalid comparison ID."
+msgstr "Neplatné ID porovnania."
+
+#: includes/Ajax_Handler.php:487
+msgid "Results not available for this comparison."
+msgstr "Výsledky pre toto porovnanie nie sú k dispozícii."
+
+#: includes/Ajax_Handler.php:543
+msgid "Stored column mapping is invalid."
+msgstr "Uložené mapovanie stĺpcov je neplatné."
+
+#: includes/Ajax_Handler.php:678
+msgid "Failed to delete comparison record."
+msgstr "Záznam porovnania sa nepodarilo odstrániť."
+
+#: includes/Ajax_Handler.php:683
+msgid "Comparison deleted successfully."
+msgstr "Porovnanie bolo úspešne odstránené."
+
+#: includes/Comparator.php:331
+msgid "Product Name (Pricelist)"
+msgstr "Názov produktu (Cenník)"
+
+#: includes/Comparator.php:332
+#: templates/history-detail.php:199
+#: templates/new-comparison.php:272
+msgid "SKU (Pricelist)"
+msgstr "SKU (Cenník)"
+
+#: includes/Comparator.php:333
+#: templates/history-detail.php:200
+#: templates/new-comparison.php:273
+msgid "EAN (Pricelist)"
+msgstr "EAN (Cenník)"
+
+#: includes/Comparator.php:334
+msgid "Found in Shop"
+msgstr "Nájdené v obchode"
+
+#: includes/Comparator.php:335
+#: includes/Comparator.php:371
+#: templates/history-detail.php:202
+#: templates/history-detail.php:222
+#: templates/new-comparison.php:275
+#: templates/new-comparison.php:293
+msgid "Shop ID"
+msgstr "ID obchodu"
+
+#: includes/Comparator.php:336
+#: includes/Comparator.php:372
+msgid "Product Name (Shop)"
+msgstr "Názov produktu (Obchod)"
+
+#: includes/Comparator.php:337
+#: includes/Comparator.php:373
+#: templates/history-detail.php:204
+#: templates/history-detail.php:224
+#: templates/new-comparison.php:277
+#: templates/new-comparison.php:295
+msgid "SKU (Shop)"
+msgstr "SKU (Obchod)"
+
+#: includes/Comparator.php:338
+#: includes/Comparator.php:374
+#: templates/history-detail.php:205
+#: templates/history-detail.php:225
+#: templates/new-comparison.php:278
+#: templates/new-comparison.php:296
+msgid "EAN (Shop)"
+msgstr "EAN (Obchod)"
+
+#: includes/Comparator.php:346
+#: includes/Comparator.php:384
+msgid "Yes"
+msgstr "Áno"
+
+#: includes/Comparator.php:346
+#: includes/Comparator.php:384
+msgid "No"
+msgstr "Nie"
+
+#: includes/Comparator.php:375
+#: templates/history-detail.php:226
+#: templates/new-comparison.php:297
+msgid "In Pricelist"
+msgstr "V cenníku"
+
+#. translators: 1: file size, 2: max allowed size
+#: includes/File_Handler.php:181
+#, php-format
+msgid "File size (%1$s) exceeds the maximum allowed size (%2$s)."
+msgstr "Veľkosť súboru (%1$s) prekračuje maximálnu povolenú veľkosť (%2$s)."
+
+#. translators: %s: file extension
+#: includes/File_Handler.php:197
+#, php-format
+msgid "File type \".%s\" is not allowed. Allowed types: CSV, XLS, XLSX."
+msgstr "Typ súboru \".%s\" nie je povolený. Povolené typy: CSV, XLS, XLSX."
+
+#: includes/File_Handler.php:208
+msgid "File type could not be verified."
+msgstr "Typ súboru sa nepodarilo overiť."
+
+#. translators: %s: filename
+#: includes/File_Handler.php:224
+#, php-format
+msgid "A file named \"%s\" already exists. Set overwrite=true to replace it."
+msgstr "Súbor s názvom \"%s\" už existuje. Nastavte overwrite=true na jeho nahradenie."
+
+#: includes/File_Handler.php:234
+msgid "Failed to save uploaded file. Check directory permissions."
+msgstr "Nahraný súbor sa nepodarilo uložiť. Skontrolujte oprávnenia priečinka."
+
+#. translators: %s: filename
+#: includes/File_Handler.php:305
+#: includes/File_Handler.php:336
+#: includes/File_Handler.php:367
+#, php-format
+msgid "File \"%s\" not found."
+msgstr "Súbor \"%s\" nebol nájdený."
+
+#: includes/File_Handler.php:314
+#: includes/File_Handler.php:345
+msgid "Failed to delete file."
+msgstr "Súbor sa nepodarilo odstrániť."
+
+#. translators: %s: error message
+#: includes/File_Handler.php:392
+#, php-format
+msgid "Failed to read spreadsheet: %s"
+msgstr "Nepodarilo sa načítať tabuľku: %s"
+
+#: includes/File_Handler.php:408
+msgid "CSV file not found."
+msgstr "Súbor CSV nebol nájdený."
+
+#: includes/File_Handler.php:415
+msgid "Failed to open CSV file."
+msgstr "Súbor CSV sa nepodarilo otvoriť."
+
+#. translators: %s: error message
+#: includes/File_Handler.php:489
+#, php-format
+msgid "Failed to parse spreadsheet: %s"
+msgstr "Nepodarilo sa spracovať tabuľku: %s"
+
+#: includes/File_Handler.php:623
+msgid "Failed to create output CSV file."
+msgstr "Výstupný súbor CSV sa nepodarilo vytvoriť."
+
+#: includes/File_Handler.php:680
+msgid "The uploaded file exceeds the upload_max_filesize directive in php.ini."
+msgstr "Nahraný súbor prekračuje direktívu upload_max_filesize v php.ini."
+
+#: includes/File_Handler.php:681
+msgid "The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form."
+msgstr "Nahraný súbor prekračuje direktívu MAX_FILE_SIZE v HTML formulári."
+
+#: includes/File_Handler.php:682
+msgid "The uploaded file was only partially uploaded."
+msgstr "Súbor bol nahraný iba čiastočne."
+
+#: includes/File_Handler.php:683
+msgid "No file was uploaded."
+msgstr "Nebol nahraný žiadny súbor."
+
+#: includes/File_Handler.php:684
+msgid "Missing a temporary folder."
+msgstr "Chýba dočasný priečinok."
+
+#: includes/File_Handler.php:685
+msgid "Failed to write file to disk."
+msgstr "Súbor sa nepodarilo zapísať na disk."
+
+#: includes/File_Handler.php:686
+msgid "A PHP extension stopped the file upload."
+msgstr "Rozšírenie PHP zastavilo nahrávanie súboru."
+
+#: includes/File_Handler.php:689
+msgid "Unknown upload error."
+msgstr "Neznáma chyba pri nahrávaní."
+
+#: includes/History.php:121
+msgid "Failed to save comparison record to database."
+msgstr "Záznam porovnania sa nepodarilo uložiť do databázy."
+
+#: includes/History.php:263
+msgid "Failed to update comparison record."
+msgstr "Záznam porovnania sa nepodarilo aktualizovať."
+
+#. translators: %d: comparison record ID
+#: templates/history-detail.php:39
+#, php-format
+msgid "Comparison #%d"
+msgstr "Porovnanie č. %d"
+
+#: templates/history-detail.php:46
+msgid "Back to History"
+msgstr "Späť na históriu"
+
+#: templates/history-detail.php:49
+#: templates/history-list.php:55
+#: templates/new-comparison.php:313
+msgid "New Comparison"
+msgstr "Nové porovnanie"
+
+#: templates/history-detail.php:59
+#: templates/new-comparison.php:24
+msgid "File"
+msgstr "Súbor"
+
+#: templates/history-detail.php:63
+#: templates/history-list.php:92
+msgid "Date"
+msgstr "Dátum"
+
+#: templates/history-detail.php:76
+#: templates/history-list.php:96
+#: templates/new-comparison.php:28
+msgid "Brands"
+msgstr "Značky"
+
+#: templates/history-detail.php:79
+#: templates/history-list.php:137
+msgid "All brands"
+msgstr "Všetky značky"
+
+#: templates/history-detail.php:87
+#: templates/new-comparison.php:178
+msgid "Column Mapping"
+msgstr "Mapovanie stĺpcov"
+
+#: templates/history-detail.php:102
+msgid "SKU:"
+msgstr "SKU:"
+
+#: templates/history-detail.php:107
+msgid "EAN:"
+msgstr "EAN:"
+
+#: templates/history-detail.php:112
+msgid "Name:"
+msgstr "Názov:"
+
+#: templates/history-detail.php:141
+#: templates/history-detail.php:164
+msgid "Download CSV"
+msgstr "Stiahnuť CSV"
+
+#: templates/history-detail.php:184
+#: templates/new-comparison.php:257
+msgid "Search..."
+msgstr "Hľadať..."
+
+#: templates/history-detail.php:186
+#: templates/new-comparison.php:259
+msgid "All"
+msgstr "Všetky"
+
+#: templates/history-detail.php:187
+#: templates/new-comparison.php:260
+msgid "Found"
+msgstr "Nájdené"
+
+#: templates/history-detail.php:198
+#: templates/new-comparison.php:271
+msgid "Name (Pricelist)"
+msgstr "Názov (Cenník)"
+
+#: templates/history-detail.php:201
+#: templates/new-comparison.php:274
+msgid "Status"
+msgstr "Stav"
+
+#: templates/history-detail.php:203
+#: templates/history-detail.php:223
+#: templates/new-comparison.php:276
+#: templates/new-comparison.php:294
+msgid "Name (Shop)"
+msgstr "Názov (Obchod)"
+
+#: templates/history-detail.php:209
+#: templates/history-detail.php:230
+msgid "Loading..."
+msgstr "Načítavam..."
+
+#: templates/history-detail.php:243
+msgid "Detailed results are not available for this comparison."
+msgstr "Podrobné výsledky pre toto porovnanie nie sú k dispozícii."
+
+#: templates/history-detail.php:260
+msgid "Delete This Comparison"
+msgstr "Odstrániť toto porovnanie"
+
+#: templates/history-list.php:63
+msgid "No comparisons found. Run your first comparison to see results here."
+msgstr "Neboli nájdené žiadne porovnania. Spustite prvé porovnanie a výsledky sa zobrazia tu."
+
+#: templates/history-list.php:65
+msgid "Start New Comparison"
+msgstr "Spustiť nové porovnanie"
+
+#: templates/history-list.php:80
+msgid "ID"
+msgstr "ID"
+
+#: templates/history-list.php:86
+msgid "Price List File"
+msgstr "Súbor cenníka"
+
+#: templates/history-list.php:97
+msgid "Pricelist Rows"
+msgstr "Riadky cenníka"
+
+#: templates/history-list.php:98
+msgid "Shop Products"
+msgstr "Produkty obchodu"
+
+#: templates/history-list.php:99
+msgid "CSV Downloads"
+msgstr "Stiahnutia CSV"
+
+#: templates/history-list.php:100
+msgid "Actions"
+msgstr "Akcie"
+
+#. translators: %d: number of additional brands
+#: templates/history-list.php:147
+#, php-format
+msgid " +%d more"
+msgid_plural " +%d more"
+msgstr[0] " +%d ďalšia"
+msgstr[1] " +%d ďalšie"
+msgstr[2] " +%d ďalších"
+
+#: templates/history-list.php:168
+msgid "Not found in shop"
+msgstr "Nenájdené v obchode"
+
+#: templates/history-list.php:191
+msgid "Pricelist→Shop"
+msgstr "Cenník→Obchod"
+
+#: templates/history-list.php:199
+msgid "Shop→Pricelist"
+msgstr "Obchod→Cenník"
+
+#: templates/history-list.php:203
+msgid "N/A"
+msgstr "Nedostupné"
+
+#: templates/history-list.php:208
+msgid "View"
+msgstr "Zobraziť"
+
+#: templates/history-list.php:215
+msgid "Re-run"
+msgstr "Spustiť znova"
+
+#: templates/history-list.php:221
+msgid "Delete"
+msgstr "Odstrániť"
+
+#: templates/new-comparison.php:17
+msgid "Import a price list and compare products against your WooCommerce catalog by SKU and EAN."
+msgstr "Importujte cenník a porovnajte produkty s vaším katalógom WooCommerce podľa SKU a EAN."
+
+#: templates/new-comparison.php:32
+msgid "Columns"
+msgstr "Stĺpce"
+
+#: templates/new-comparison.php:36
+msgid "Compare"
+msgstr "Porovnať"
+
+#: templates/new-comparison.php:47
+msgid "Step 1: Select Price List File"
+msgstr "Krok 1: Vyberte súbor cenníka"
+
+#: templates/new-comparison.php:51
+msgid "Upload New File"
+msgstr "Nahrať nový súbor"
+
+#: templates/new-comparison.php:54
+msgid "Use Existing File"
+msgstr "Použiť existujúci súbor"
+
+#: templates/new-comparison.php:62
+msgid "Price list file"
+msgstr "Súbor cenníka"
+
+#: templates/new-comparison.php:66
+msgid "Supported formats: CSV, XLS, XLSX. Maximum size: 20 MB."
+msgstr "Podporované formáty: CSV, XLS, XLSX. Maximálna veľkosť: 20 MB."
+
+#: templates/new-comparison.php:71
+msgid "File exists"
+msgstr "Súbor existuje"
+
+#: templates/new-comparison.php:75
+msgid "Overwrite existing file with the same name"
+msgstr "Prepísať existujúci súbor s rovnakým názvom"
+
+#: templates/new-comparison.php:82
+msgid "Uploading..."
+msgstr "Nahrávam..."
+
+#: templates/new-comparison.php:85
+msgid "Upload File"
+msgstr "Nahrať súbor"
+
+#: templates/new-comparison.php:92
+msgid "Loading files..."
+msgstr "Načítavam súbory..."
+
+#: templates/new-comparison.php:98
+msgid "Select Sheet"
+msgstr "Vybrať hárok"
+
+#: templates/new-comparison.php:100
+msgid "-- Select a sheet --"
+msgstr "-- Vyberte hárok --"
+
+#: templates/new-comparison.php:106
+msgid "Next: Select Brands"
+msgstr "Ďalej: Vybrať značky"
+
+#: templates/new-comparison.php:115
+msgid "Step 2: Select Brands"
+msgstr "Krok 2: Vyberte značky"
+
+#: templates/new-comparison.php:117
+msgid "Select the brands whose products will be checked against this price list. The comparison will look for products from these brands that are not in the price list."
+msgstr "Vyberte značky, ktorých produkty budú porovnané s týmto cenníkom. Porovnanie bude hľadať produkty týchto značiek, ktoré nie sú v cenníku."
+
+#: templates/new-comparison.php:121
+msgid "Loading brands..."
+msgstr "Načítavam značky..."
+
+#: templates/new-comparison.php:126
+#: templates/new-comparison.php:212
+msgid "Back"
+msgstr "Späť"
+
+#: templates/new-comparison.php:129
+msgid "Next: Map Columns"
+msgstr "Ďalej: Mapovať stĺpce"
+
+#: templates/new-comparison.php:138
+msgid "Step 3: Map Columns"
+msgstr "Krok 3: Mapovanie stĺpcov"
+
+#: templates/new-comparison.php:140
+msgid "Tell the plugin which columns in the price list contain SKU, EAN, and product name. You can select multiple columns for each field."
+msgstr "Zadajte doplnku, ktoré stĺpce cenníka obsahujú SKU, EAN a názov produktu. Pre každé pole môžete vybrať viacero stĺpcov."
+
+#: templates/new-comparison.php:146
+msgid "Header row:"
+msgstr "Riadok s hlavičkou:"
+
+#: templates/new-comparison.php:158
+msgid "Auto-detected. Change if columns look wrong."
+msgstr "Automaticky zistené. Zmeňte, ak stĺpce vyzerajú nesprávne."
+
+#: templates/new-comparison.php:161
+msgid "Reload columns"
+msgstr "Znovu načítať stĺpce"
+
+#: templates/new-comparison.php:167
+msgid "File Preview (first 5 rows)"
+msgstr "Náhľad súboru (prvých 5 riadkov)"
+
+#: templates/new-comparison.php:182
+msgid "SKU column(s)"
+msgstr "Stĺpec(-pce) SKU"
+
+#: templates/new-comparison.php:186
+msgid "Select one or more columns that contain SKU values."
+msgstr "Vyberte jeden alebo viac stĺpcov, ktoré obsahujú hodnoty SKU."
+
+#: templates/new-comparison.php:191
+msgid "EAN column(s)"
+msgstr "Stĺpec(-pce) EAN"
+
+#: templates/new-comparison.php:195
+msgid "Select one or more columns that contain EAN/barcode values."
+msgstr "Vyberte jeden alebo viac stĺpcov, ktoré obsahujú hodnoty EAN/čiarového kódu."
+
+#: templates/new-comparison.php:200
+msgid "Name column(s)"
+msgstr "Stĺpec(-pce) názvu"
+
+#: templates/new-comparison.php:204
+msgid "Select columns containing product name. Multiple columns will be joined with a space."
+msgstr "Vyberte stĺpce obsahujúce názov produktu. Viacero stĺpcov bude spojených medzerou."
+
+#: templates/new-comparison.php:215
+msgid "Start Comparison"
+msgstr "Spustiť porovnanie"
+
+#: templates/new-comparison.php:224
+msgid "Step 4: Comparison"
+msgstr "Krok 4: Porovnanie"
+
+#: templates/new-comparison.php:231
+msgid "Preparing comparison..."
+msgstr "Pripravujem porovnanie..."
+
+#: templates/new-comparison.php:310
+msgid "View History"
+msgstr "Zobraziť históriu"
+
+#: wc-sku-ean-comparator.php:40
+msgid "WC SKU/EAN Comparator: Composer dependencies are missing. Please run \"composer install\" in the plugin directory."
+msgstr "WC SKU/EAN Komparátor: Chýbajú závislosti Composer. Spustite príkaz \"composer install\" v priečinku doplnku."
+
+#. translators: %s: WooCommerce plugin name
+#: wc-sku-ean-comparator.php:70
+#, php-format
+msgid "WC SKU/EAN Comparator requires %s to be installed and active."
+msgstr "WC SKU/EAN Komparátor vyžaduje, aby bol %s nainštalovaný a aktívny."
+
+#: wc-sku-ean-comparator.php:110
+msgid "WC SKU/EAN Comparator requires WooCommerce to be installed and active."
+msgstr "WC SKU/EAN Komparátor vyžaduje, aby bol WooCommerce nainštalovaný a aktívny."
+
+#: wc-sku-ean-comparator.php:111
+#: wc-sku-ean-comparator.php:120
+msgid "Plugin Activation Error"
+msgstr "Chyba aktivácie doplnku"
+
+#: wc-sku-ean-comparator.php:119
+msgid "WC SKU/EAN Comparator: Composer dependencies are missing. Please run \"composer install\"."
+msgstr "WC SKU/EAN Komparátor: Chýbajú závislosti Composer. Spustite príkaz \"composer install\"."
