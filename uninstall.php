@@ -25,18 +25,32 @@ WC_SKU_EAN_Comparator\History::drop_table();
 // Delete the plugin option.
 delete_option( 'wc_sec_db_version' );
 
-// Delete the uploads directory and all its contents.
+// Delete the uploads directory and all its contents recursively.
 $upload_dir = trailingslashit( wp_upload_dir()['basedir'] ) . 'wc-sku-ean-comparator/';
 
-if ( is_dir( $upload_dir ) ) {
-	// Recursively remove all files inside the directory.
-	$files = glob( $upload_dir . '*', GLOB_MARK );
-	if ( $files ) {
-		foreach ( $files as $file ) {
-			if ( is_file( $file ) ) {
-				wp_delete_file( $file );
+/**
+ * Recursively delete a directory and all files/subdirectories inside it.
+ *
+ * @param string $dir Absolute path to the directory.
+ * @return void
+ */
+function wc_sec_delete_directory( string $dir ): void {
+	if ( ! is_dir( $dir ) ) {
+		return;
+	}
+
+	$entries = glob( trailingslashit( $dir ) . '*', GLOB_MARK );
+	if ( $entries ) {
+		foreach ( $entries as $entry ) {
+			if ( is_dir( $entry ) ) {
+				wc_sec_delete_directory( rtrim( $entry, '/' ) );
+			} else {
+				wp_delete_file( $entry );
 			}
 		}
 	}
-	rmdir( $upload_dir );
+
+	rmdir( $dir );
 }
+
+wc_sec_delete_directory( $upload_dir );
