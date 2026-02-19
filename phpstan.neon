@@ -1,0 +1,33 @@
+parameters:
+    level: 6
+
+    paths:
+        - wc-sku-ean-comparator.php
+        - uninstall.php
+        - includes/
+
+    excludePaths:
+        - vendor/
+        - _temp/
+        - tests/
+
+    # WordPress/WooCommerce stubs from szepeviktor/phpstan-wordpress.
+    bootstrapFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+
+    # Treat these as dynamic WordPress globals.
+    dynamicConstantNames:
+        - ABSPATH
+        - ARRAY_A
+        - ARRAY_N
+        - OBJECT
+        - WP_DEBUG
+        - WP_UNINSTALL_PLUGIN
+
+    # Ignore errors from WordPress stubs that are acceptable.
+    ignoreErrors:
+        # WP_Query->posts is typed as WP_Post[] but IDs query returns int[]
+        - '#Call to an undefined method WP_Query#'
+        # Automattic\WooCommerce stubs may be incomplete
+        - '#Automattic\\\\WooCommerce#'

@@ -1,0 +1,685 @@
+/**
+ * WC SKU/EAN Comparator - Admin Styles
+ *
+ * @package WC_SKU_EAN_Comparator
+ */
+
+/* ==========================================================================
+   Layout & Wrap
+   ========================================================================== */
+
+.wc-sec-wrap {
+	max-width: 1400px;
+}
+
+.wc-sec-wrap h1 {
+	margin-bottom: 16px;
+}
+
+/* ==========================================================================
+   Notices
+   ========================================================================== */
+
+.wc-sec-notice {
+	padding: 10px 16px;
+	margin: 12px 0;
+	border-left: 4px solid #72aee6;
+	background: #f0f6fc;
+}
+
+.wc-sec-notice.wc-sec-notice--error {
+	border-color: #d63638;
+	background: #fcf0f1;
+	color: #d63638;
+}
+
+.wc-sec-notice.wc-sec-notice--success {
+	border-color: #00a32a;
+	background: #f0fdf4;
+}
+
+/* ==========================================================================
+   Step Indicator
+   ========================================================================== */
+
+.wc-sec-steps {
+	display: flex;
+	align-items: center;
+	margin-bottom: 24px;
+	gap: 0;
+}
+
+.wc-sec-step {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 20px 8px 12px;
+	background: #f6f7f7;
+	color: #757575;
+	border: 1px solid #c3c4c7;
+	border-right: none;
+	font-size: 13px;
+	position: relative;
+	clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+	margin-left: -6px;
+	min-width: 110px;
+}
+
+.wc-sec-step:first-child {
+	clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+	margin-left: 0;
+}
+
+.wc-sec-step.active {
+	background: #2271b1;
+	color: #fff;
+	border-color: #2271b1;
+	z-index: 1;
+}
+
+.wc-sec-step.completed {
+	background: #00a32a;
+	color: #fff;
+	border-color: #00a32a;
+}
+
+.wc-sec-step__number {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.25);
+	font-weight: 700;
+	font-size: 12px;
+	flex-shrink: 0;
+}
+
+.wc-sec-step:not(.active):not(.completed) .wc-sec-step__number {
+	background: #c3c4c7;
+	color: #fff;
+}
+
+/* ==========================================================================
+   Panel / Step container
+   ========================================================================== */
+
+.wc-sec-panel {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	padding: 24px;
+	margin-bottom: 20px;
+}
+
+.wc-sec-panel h2 {
+	margin-top: 0;
+	padding-top: 0;
+	font-size: 18px;
+}
+
+.wc-sec-panel__footer {
+	margin-top: 24px;
+	padding-top: 16px;
+	border-top: 1px solid #f0f0f1;
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+
+/* ==========================================================================
+   File Tabs
+   ========================================================================== */
+
+.wc-sec-file-tabs {
+	display: flex;
+	gap: 0;
+	margin-bottom: 20px;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.wc-sec-tab-btn {
+	border-radius: 0 !important;
+	border-bottom: none !important;
+	margin-bottom: -1px !important;
+	position: relative;
+}
+
+.wc-sec-tab-btn.active {
+	background: #fff !important;
+	border-color: #c3c4c7 !important;
+	border-bottom-color: #fff !important;
+	color: #2271b1 !important;
+}
+
+.wc-sec-tab-content {
+	display: none;
+}
+
+.wc-sec-tab-content.active {
+	display: block;
+}
+
+/* ==========================================================================
+   File List (existing files tab)
+   ========================================================================== */
+
+.wc-sec-file-list {
+	border: 1px solid #c3c4c7;
+	border-radius: 2px;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.wc-sec-file-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	border-bottom: 1px solid #f0f0f1;
+	cursor: pointer;
+	transition: background 0.1s;
+}
+
+.wc-sec-file-item:last-child {
+	border-bottom: none;
+}
+
+.wc-sec-file-item:hover {
+	background: #f6f7f7;
+}
+
+.wc-sec-file-item.selected {
+	background: #f0f6fc;
+	border-left: 3px solid #2271b1;
+}
+
+.wc-sec-file-item__name {
+	font-weight: 500;
+	flex: 1;
+}
+
+.wc-sec-file-item__meta {
+	font-size: 12px;
+	color: #757575;
+	margin: 0 12px;
+}
+
+.wc-sec-file-item__actions {
+	display: flex;
+	gap: 6px;
+}
+
+/* ==========================================================================
+   Progress Bar
+   ========================================================================== */
+
+.wc-sec-progress {
+	margin: 16px 0;
+}
+
+.wc-sec-progress__bar {
+	height: 14px;
+	background: #f0f0f1;
+	border-radius: 7px;
+	overflow: hidden;
+	margin-bottom: 6px;
+}
+
+.wc-sec-progress__fill {
+	height: 100%;
+	background: #2271b1;
+	border-radius: 7px;
+	transition: width 0.3s ease;
+}
+
+.wc-sec-progress__label {
+	font-size: 13px;
+	color: #757575;
+}
+
+.wc-sec-running {
+	padding: 20px 0;
+}
+
+/* ==========================================================================
+   Brand Selector
+   ========================================================================== */
+
+.wc-sec-brand-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 8px;
+	max-height: 400px;
+	overflow-y: auto;
+	border: 1px solid #c3c4c7;
+	padding: 12px;
+	border-radius: 2px;
+	margin-bottom: 12px;
+}
+
+.wc-sec-brand-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border: 1px solid #c3c4c7;
+	border-radius: 2px;
+	cursor: pointer;
+	transition: background 0.1s, border-color 0.1s;
+	font-size: 13px;
+}
+
+.wc-sec-brand-item:hover {
+	background: #f6f7f7;
+}
+
+.wc-sec-brand-item.selected {
+	background: #f0f6fc;
+	border-color: #2271b1;
+}
+
+.wc-sec-brand-item input[type="checkbox"] {
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.wc-sec-brand-count {
+	margin-left: auto;
+	font-size: 11px;
+	color: #757575;
+	background: #f0f0f1;
+	padding: 1px 6px;
+	border-radius: 10px;
+}
+
+.wc-sec-brand-actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+/* ==========================================================================
+   Column Selector
+   ========================================================================== */
+
+.wc-sec-column-selector {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.wc-sec-column-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border: 1px solid #c3c4c7;
+	border-radius: 2px;
+	cursor: pointer;
+	font-size: 12px;
+	background: #f6f7f7;
+	transition: background 0.1s, border-color 0.1s;
+}
+
+.wc-sec-column-toggle input[type="checkbox"] {
+	margin: 0;
+}
+
+.wc-sec-column-toggle.selected {
+	background: #e8f4fd;
+	border-color: #2271b1;
+	color: #2271b1;
+}
+
+/* ==========================================================================
+   Preview Table
+   ========================================================================== */
+
+.wc-sec-header-row-wrap {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding: 10px 14px;
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	border-radius: 2px;
+}
+
+.wc-sec-header-row-wrap label {
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.wc-sec-header-row-hint {
+	flex: 1;
+	font-style: italic;
+}
+
+.wc-sec-preview-wrap {
+	margin-bottom: 20px;
+}
+
+.wc-sec-table-scroll {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.wc-sec-table {
+	min-width: 600px;
+	table-layout: auto;
+}
+
+.wc-sec-table th,
+.wc-sec-table td {
+	padding: 8px 12px;
+	font-size: 13px;
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   Result Tabs
+   ========================================================================== */
+
+.wc-sec-result-tabs {
+	display: flex;
+	gap: 0;
+	margin: 20px 0 0;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.wc-sec-result-tab {
+	border-radius: 0 !important;
+	border-bottom: none !important;
+	margin-bottom: -1px !important;
+}
+
+.wc-sec-result-tab.active {
+	background: #fff !important;
+	border-color: #c3c4c7 !important;
+	border-bottom-color: #fff !important;
+	color: #2271b1 !important;
+	font-weight: 600;
+}
+
+.wc-sec-result-content {
+	display: none;
+	padding: 16px 0;
+}
+
+.wc-sec-result-content.active {
+	display: block;
+}
+
+/* ==========================================================================
+   Filter Bar
+   ========================================================================== */
+
+.wc-sec-filter-bar {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.wc-sec-filter-bar input[type="search"] {
+	max-width: 280px;
+}
+
+/* ==========================================================================
+   Status badges
+   ========================================================================== */
+
+.wc-sec-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.wc-sec-badge--found {
+	background: #edfaef;
+	color: #00a32a;
+}
+
+.wc-sec-badge--not-found {
+	background: #fce8e8;
+	color: #d63638;
+}
+
+.wc-sec-badge--in-pricelist {
+	background: #edfaef;
+	color: #00a32a;
+}
+
+.wc-sec-badge--not-in-pricelist {
+	background: #fce8e8;
+	color: #d63638;
+}
+
+/* ==========================================================================
+   Pagination
+   ========================================================================== */
+
+.wc-sec-pagination {
+	margin-top: 12px;
+	display: flex;
+	gap: 4px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.wc-sec-pagination .button {
+	min-width: 32px;
+	text-align: center;
+}
+
+.wc-sec-pagination .button.current {
+	background: #2271b1;
+	color: #fff;
+	border-color: #2271b1;
+	cursor: default;
+}
+
+.wc-sec-pagination-info {
+	font-size: 13px;
+	color: #757575;
+	margin-left: 8px;
+}
+
+/* ==========================================================================
+   Stats
+   ========================================================================== */
+
+.wc-sec-stats {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin: 16px 0;
+}
+
+.wc-sec-stat-card {
+	flex: 1;
+	min-width: 220px;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	padding: 16px 20px;
+}
+
+.wc-sec-stat-card h3 {
+	margin: 0 0 12px;
+	font-size: 14px;
+	color: #2271b1;
+}
+
+.wc-sec-stat-numbers {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.wc-sec-stat-item {
+	text-align: center;
+}
+
+.wc-sec-stat-value {
+	display: block;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1;
+	color: #1d2327;
+}
+
+.wc-sec-stat-label {
+	display: block;
+	font-size: 12px;
+	color: #757575;
+	margin-top: 4px;
+}
+
+.wc-sec-stat-item--success .wc-sec-stat-value {
+	color: #00a32a;
+}
+
+.wc-sec-stat-item--warning .wc-sec-stat-value {
+	color: #d63638;
+}
+
+.wc-sec-csv-dl-btn {
+	margin-top: 12px;
+}
+
+/* ==========================================================================
+   CSV links (history list)
+   ========================================================================== */
+
+.wc-sec-csv-links {
+	margin: 12px 0;
+}
+
+.wc-sec-csv-link {
+	display: inline-block;
+	font-size: 12px;
+	padding: 2px 8px;
+	background: #f0f6fc;
+	border: 1px solid #72aee6;
+	border-radius: 2px;
+	color: #2271b1;
+	text-decoration: none;
+	margin-right: 6px;
+}
+
+.wc-sec-csv-link:hover {
+	background: #2271b1;
+	color: #fff;
+	border-color: #2271b1;
+}
+
+/* ==========================================================================
+   History list specific
+   ========================================================================== */
+
+.wc-sec-history-table .column-id {
+	width: 60px;
+}
+
+.wc-sec-history-table .column-date {
+	width: 155px;
+}
+
+.wc-sec-history-table .column-brands {
+	width: 200px;
+}
+
+.wc-sec-history-table .column-stats {
+	width: 130px;
+}
+
+.wc-sec-history-table .column-csv {
+	width: 140px;
+}
+
+.wc-sec-history-table .column-actions {
+	width: 130px;
+}
+
+.wc-sec-stat-matched {
+	color: #00a32a;
+	font-weight: 600;
+}
+
+.wc-sec-stat-unmatched {
+	color: #d63638;
+	font-weight: 600;
+}
+
+.wc-sec-stat-total {
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Empty state
+   ========================================================================== */
+
+.wc-sec-empty-state {
+	background: #f6f7f7;
+	border: 1px dashed #c3c4c7;
+	border-radius: 3px;
+	padding: 40px;
+	text-align: center;
+	color: #757575;
+}
+
+.wc-sec-empty-state p {
+	font-size: 15px;
+	margin-bottom: 16px;
+}
+
+/* ==========================================================================
+   Detail page
+   ========================================================================== */
+
+.wc-sec-detail-meta {
+	margin-bottom: 20px;
+}
+
+.wc-sec-meta-table {
+	margin: 0;
+}
+
+.wc-sec-meta-table th {
+	width: 160px;
+	padding: 8px 10px;
+	font-weight: 600;
+}
+
+.wc-sec-meta-table td {
+	padding: 8px 10px;
+}
+
+.wc-sec-mapping-label {
+	font-weight: 600;
+	color: #757575;
+}
+
+.wc-sec-detail-footer {
+	margin-top: 24px;
+	padding-top: 16px;
+	border-top: 1px solid #f0f0f1;
+}
+
+/* ==========================================================================
+   Utility
+   ========================================================================== */
+
+.hidden {
+	display: none !important;
+}

@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<ruleset name="WC SKU/EAN Comparator">
+    <description>WordPress Coding Standards for the WC SKU/EAN Comparator plugin.</description>
+
+    <!-- Scan only these directories/files -->
+    <file>wc-sku-ean-comparator.php</file>
+    <file>uninstall.php</file>
+    <file>includes/</file>
+    <file>templates/</file>
+
+    <!-- Exclude generated/vendor directories -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/_temp/*</exclude-pattern>
+    <exclude-pattern>*/tests/*</exclude-pattern>
+
+    <!-- Use the WordPress ruleset -->
+    <rule ref="WordPress">
+        <!-- Allow short ternary for brevity in templates -->
+        <exclude name="WordPress.PHP.DisallowShortTernary"/>
+    </rule>
+
+    <!-- WordPress Extra: additional best practices -->
+    <rule ref="WordPress-Extra"/>
+
+    <!-- WordPress Docs: PHPDoc requirements -->
+    <rule ref="WordPress-Docs"/>
+
+    <!-- Minimum PHP version -->
+    <config name="minimum_supported_wp_version" value="6.0"/>
+    <config name="testVersion" value="8.0-"/>
+
+    <!-- Text domain for i18n checks -->
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array" value="wc-sku-ean-comparator"/>
+        </properties>
+    </rule>
+
+    <!-- Prefix requirement: all global functions/classes/variables must be prefixed -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array" value="WC_SKU_EAN_Comparator,wc_sec"/>
+        </properties>
+    </rule>
+</ruleset>
