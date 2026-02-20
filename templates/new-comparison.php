@@ -130,12 +130,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div><!-- /step 2 -->
 
 	<!-- ================================================================
-	     STEP 3: Column mapping
+	     STEP 3: Column mapping (rules-based)
 	     ================================================================ -->
 	<div class="wc-sec-panel hidden" id="wc-sec-step-3">
 		<h2><?php esc_html_e( 'Step 3: Map Columns', 'wc-sku-ean-comparator' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Tell the plugin which columns in the price list contain SKU, EAN, and product name. You can select multiple columns for each field.', 'wc-sku-ean-comparator' ); ?>
+			<?php esc_html_e( 'Add one rule per shop field you want to match on. Rules are tried in order — first match wins. Each rule maps one or more pricelist columns to a shop field.', 'wc-sku-ean-comparator' ); ?>
 		</p>
 
 		<!-- Header row selector -->
@@ -171,38 +171,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</div>
 		</div>
 
-		<!-- Column assignment -->
+		<!-- Rules builder -->
 		<div id="wc-sec-mapping-wrap" class="hidden">
-			<h3><?php esc_html_e( 'Column Mapping', 'wc-sku-ean-comparator' ); ?></h3>
-			<table class="form-table">
-				<tr>
-					<th scope="row">
-						<label><?php esc_html_e( 'SKU column(s)', 'wc-sku-ean-comparator' ); ?> <span class="required">*</span></label>
-					</th>
-					<td>
-						<div id="wc-sec-sku-columns" class="wc-sec-column-selector"></div>
-						<p class="description"><?php esc_html_e( 'Select one or more columns that contain SKU values.', 'wc-sku-ean-comparator' ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<label><?php esc_html_e( 'EAN column(s)', 'wc-sku-ean-comparator' ); ?></label>
-					</th>
-					<td>
-						<div id="wc-sec-ean-columns" class="wc-sec-column-selector"></div>
-						<p class="description"><?php esc_html_e( 'Select one or more columns that contain EAN/barcode values.', 'wc-sku-ean-comparator' ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<label><?php esc_html_e( 'Name column(s)', 'wc-sku-ean-comparator' ); ?></label>
-					</th>
-					<td>
-						<div id="wc-sec-name-columns" class="wc-sec-column-selector"></div>
-						<p class="description"><?php esc_html_e( 'Select columns containing product name. Multiple columns will be joined with a space.', 'wc-sku-ean-comparator' ); ?></p>
-					</td>
-				</tr>
-			</table>
+			<h3><?php esc_html_e( 'Mapping Rules', 'wc-sku-ean-comparator' ); ?></h3>
+			<p class="description">
+				<?php esc_html_e( 'Rules are matched in order. At least one rule with at least one pricelist column is required.', 'wc-sku-ean-comparator' ); ?>
+			</p>
+			<div id="wc-sec-rules-container"></div>
+			<button type="button" class="button wc-sec-add-rule-btn" id="wc-sec-add-rule-btn">
+				+ <?php esc_html_e( 'Add Rule', 'wc-sku-ean-comparator' ); ?>
+			</button>
 		</div>
 
 		<div class="wc-sec-panel__footer">
@@ -268,16 +246,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<div class="wc-sec-table-scroll">
 					<table class="widefat striped wc-sec-table" id="wc-sec-table-pricelist">
 						<thead>
-							<tr>
-								<th><?php esc_html_e( 'Name (Pricelist)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'SKU (Pricelist)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'EAN (Pricelist)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'Status', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'Shop ID', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'Name (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'SKU (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'EAN (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-							</tr>
+							<tr id="wc-sec-thead-pricelist"></tr>
 						</thead>
 						<tbody id="wc-sec-tbody-pricelist"></tbody>
 					</table>
@@ -290,13 +259,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<div class="wc-sec-table-scroll">
 					<table class="widefat striped wc-sec-table" id="wc-sec-table-shop">
 						<thead>
-							<tr>
-								<th><?php esc_html_e( 'Shop ID', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'Name (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'SKU (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'EAN (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-								<th><?php esc_html_e( 'In Pricelist', 'wc-sku-ean-comparator' ); ?></th>
-							</tr>
+							<tr id="wc-sec-thead-shop"></tr>
 						</thead>
 						<tbody id="wc-sec-tbody-shop"></tbody>
 					</table>

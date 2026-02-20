@@ -17,6 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handles batch loading of WooCommerce product data and performs
  * bidirectional comparison between an imported price list and the
  * WooCommerce product catalog.
+ *
+ * Column mapping now uses a rules-based approach instead of hardcoded
+ * SKU / EAN / Name fields. Each rule defines:
+ *   - shop_field: 'id' | 'sku' | 'ean' | 'name' | 'custom_field'
+ *   - custom_key: meta key string (only when shop_field = 'custom_field')
+ *   - label:      human-readable label used as CSV column header
+ *   - pricelist_columns: int[] column indices in the price list file
  */
 class Comparator {
 
@@ -26,6 +33,13 @@ class Comparator {
 	 * @var int
 	 */
 	const BATCH_SIZE = 500;
+
+	/**
+	 * Built-in shop fields that are always available without custom meta.
+	 *
+	 * @var string[]
+	 */
+	const BUILTIN_FIELDS = array( 'id', 'sku', 'ean', 'name' );
 
 	/**
 	 * File handler instance.
@@ -43,30 +57,66 @@ class Comparator {
 		$this->file_handler = $file_handler;
 	}
 
+	// =========================================================================
+	// Product map loading
+	// =========================================================================
+
 	/**
-	 * Load SKU→ID, EAN→ID, and name→ID maps for WooCommerce products,
-	 * optionally filtered by brand slugs.
+	 * Load product data maps needed for the given comparison rules.
 	 *
 	 * Products are fetched in batches to avoid PHP memory limits.
+	 * For each active rule a lookup map is built:
+	 *   - 'id'           → $maps['id'][ $product_id ]  = $product_id
+	 *   - 'sku'          → $maps['sku'][ $sku ]         = $product_id
+	 *   - 'ean'          → $maps['ean'][ $ean ]         = $product_id
+	 *   - 'name'         → $maps['name'][ lc($name) ]  = $product_id
+	 *   - 'custom_field' → $maps['cf__{key}'][ $val ]  = $product_id
 	 *
+	 * @param array<int, array{shop_field: string, custom_key: string|null, label: string, pricelist_columns: int[]}> $rules
+	 *   Comparison rules.
 	 * @param string[] $brand_slugs Optional WooCommerce product_brand taxonomy slugs to filter by.
-	 *                              Empty array = all products.
 	 * @return array{
-	 *   sku_map: array<string, int>,
-	 *   ean_map: array<string, int>,
-	 *   name_map: array<string, int>,
-	 *   product_data: array<int, array{id: int, name: string, sku: string, ean: string}>
+	 *   maps: array<string, array<string, int>>,
+	 *   product_data: array<int, array<string, mixed>>
 	 * }
 	 */
-	public function load_product_maps( array $brand_slugs = array() ): array {
+	public function load_product_maps( array $rules, array $brand_slugs = array() ): array {
 		global $wpdb;
 
-		$sku_map      = array();
-		$ean_map      = array();
-		$name_map     = array();
+		$maps         = array();
 		$product_data = array();
 
-		// Build the base product ID query.
+		// Determine which meta keys we need to load.
+		$need_sku    = false;
+		$need_ean    = false;
+		$need_name   = false;
+		$custom_keys = array(); // unique list of custom meta keys.
+
+		foreach ( $rules as $rule ) {
+			$field = $rule['shop_field'] ?? '';
+			switch ( $field ) {
+				case 'id':
+					// ID is available from wp_posts directly — no extra meta needed.
+					break;
+				case 'sku':
+					$need_sku = true;
+					break;
+				case 'ean':
+					$need_ean = true;
+					break;
+				case 'name':
+					$need_name = true;
+					break;
+				case 'custom_field':
+					$key = trim( (string) ( $rule['custom_key'] ?? '' ) );
+					if ( $key !== '' && ! in_array( $key, $custom_keys, true ) ) {
+						$custom_keys[] = $key;
+					}
+					break;
+			}
+		}
+
+		// Build the base product ID list.
 		if ( ! empty( $brand_slugs ) ) {
 			$product_ids = $this->get_product_ids_by_brands( $brand_slugs );
 		} else {
@@ -75,14 +125,24 @@ class Comparator {
 
 		if ( empty( $product_ids ) ) {
 			return array(
-				'sku_map'      => $sku_map,
-				'ean_map'      => $ean_map,
-				'name_map'     => $name_map,
+				'maps'         => $maps,
 				'product_data' => $product_data,
 			);
 		}
 
-		// Process in batches.
+		// Build list of meta keys to fetch.
+		$meta_keys_to_fetch = array();
+		if ( $need_sku ) {
+			$meta_keys_to_fetch[] = '_sku';
+		}
+		if ( $need_ean ) {
+			$meta_keys_to_fetch[] = '_global_unique_id';
+		}
+		foreach ( $custom_keys as $ck ) {
+			$meta_keys_to_fetch[] = $ck;
+		}
+
+		// Process products in batches.
 		$total     = count( $product_ids );
 		$processed = 0;
 
@@ -95,81 +155,131 @@ class Comparator {
 
 			$placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%d' ) );
 
-			// Fetch post title + SKU + EAN in one query with two meta JOINs.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT p.ID, p.post_title,
-						MAX(CASE WHEN pm.meta_key = '_sku' THEN pm.meta_value ELSE NULL END) AS sku,
-						MAX(CASE WHEN pm.meta_key = '_global_unique_id' THEN pm.meta_value ELSE NULL END) AS ean
-					FROM {$wpdb->posts} p
-					LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key IN ('_sku', '_global_unique_id')
-					WHERE p.ID IN (" . $placeholders . ")
-					AND p.post_status = 'publish'
-					GROUP BY p.ID, p.post_title", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-					...$batch_ids
-				),
-				ARRAY_A
-			);
+			if ( ! empty( $meta_keys_to_fetch ) ) {
+				// Build dynamic CASE expressions for each meta key.
+				$case_parts         = array();
+				$meta_key_binds     = array();
+				$meta_placeholders  = implode( ',', array_fill( 0, count( $meta_keys_to_fetch ), '%s' ) );
+
+				foreach ( $meta_keys_to_fetch as $mk ) {
+					$case_parts[]      = "MAX(CASE WHEN pm.meta_key = %s THEN pm.meta_value ELSE NULL END) AS meta__{$this->safe_alias( $mk )}";
+					$meta_key_binds[]  = $mk;
+				}
+
+				$select_cases = implode( ", \n\t\t\t\t\t", $case_parts );
+
+				// Build the full query parameter array: meta keys for CASE, then batch IDs, then meta keys for IN().
+				$query_params = array_merge( $meta_key_binds, $batch_ids, $meta_key_binds );
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->prepare(
+						"SELECT p.ID, p.post_title,
+						{$select_cases}
+						FROM {$wpdb->posts} p
+						LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key IN ({$meta_placeholders})
+						WHERE p.ID IN ({$placeholders})
+						AND p.post_status = 'publish'
+						GROUP BY p.ID, p.post_title",
+						...$query_params
+					),
+					ARRAY_A
+				);
+			} else {
+				// No meta keys needed — just fetch post titles/IDs.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->prepare(
+						"SELECT p.ID, p.post_title
+						FROM {$wpdb->posts} p
+						WHERE p.ID IN ({$placeholders})
+						AND p.post_status = 'publish'",
+						...$batch_ids
+					),
+					ARRAY_A
+				);
+			}
 
 			if ( $rows ) {
 				foreach ( $rows as $row ) {
 					$product_id = (int) $row['ID'];
-					$sku        = trim( (string) $row['sku'] );
-					$ean        = trim( (string) $row['ean'] );
 					$name       = (string) $row['post_title'];
 
-				if ( $sku !== '' ) {
-					$sku_map[ $sku ] = $product_id;
-				}
-				if ( $ean !== '' ) {
-					$ean_map[ $ean ] = $product_id;
-				}
-				if ( $name !== '' ) {
-					// Store lower-case normalised name for case-insensitive matching.
-					$name_map[ mb_strtolower( $name ) ] = $product_id;
-				}
-
-					$product_data[ $product_id ] = array(
+					// Build a flat product_data entry with all available fields.
+					$product_entry = array(
 						'id'   => $product_id,
 						'name' => $name,
-						'sku'  => $sku,
-						'ean'  => $ean,
 					);
+
+					if ( $need_sku ) {
+						$product_entry['sku'] = trim( (string) ( $row[ 'meta___sku' ] ?? '' ) );
+					}
+					if ( $need_ean ) {
+						$product_entry['ean'] = trim( (string) ( $row[ 'meta___global_unique_id' ] ?? '' ) );
+					}
+					foreach ( $custom_keys as $ck ) {
+						$alias                        = 'meta__' . $this->safe_alias( $ck );
+						$product_entry[ 'cf__' . $ck ] = trim( (string) ( $row[ $alias ] ?? '' ) );
+					}
+
+					$product_data[ $product_id ] = $product_entry;
+
+					// Populate lookup maps.
+					// ID map.
+					$maps['id'][ (string) $product_id ] = $product_id;
+
+					if ( $need_sku ) {
+						$sku = $product_entry['sku'];
+						if ( $sku !== '' ) {
+							$maps['sku'][ $sku ] = $product_id;
+						}
+					}
+					if ( $need_ean ) {
+						$ean = $product_entry['ean'];
+						if ( $ean !== '' ) {
+							$maps['ean'][ $ean ] = $product_id;
+						}
+					}
+					if ( $need_name && $name !== '' ) {
+						$maps['name'][ mb_strtolower( $name ) ] = $product_id;
+					}
+					foreach ( $custom_keys as $ck ) {
+						$val = $product_entry[ 'cf__' . $ck ];
+						if ( $val !== '' ) {
+							$maps[ 'cf__' . $ck ][ $val ] = $product_id;
+						}
+					}
 				}
 			}
 
-			$processed += count( $batch_ids );
-
-			// Free WP object cache after each batch to manage memory.
-			wp_cache_flush();
+		$processed += count( $batch_ids );
 		}
 
 		return array(
-			'sku_map'      => $sku_map,
-			'ean_map'      => $ean_map,
-			'name_map'     => $name_map,
+			'maps'         => $maps,
 			'product_data' => $product_data,
 		);
 	}
 
+	// =========================================================================
+	// Pricelist → Shop comparison
+	// =========================================================================
+
 	/**
 	 * Compare price list rows against the WooCommerce shop (Pricelist → Shop).
 	 *
-	 * For each row in the price list, finds the matching WooCommerce product
-	 * by SKU first, then EAN.
+	 * For each row in the price list, tries to find the matching WooCommerce
+	 * product by iterating rules in order (first match wins).
 	 *
-	 * @param array<int, array<int, string>>     $rows           Parsed rows from the price list (row 0 = headers).
+	 * @param array<int, array<int, string>> $rows           Parsed rows (row 0 = headers).
+	 * @param array<int, array{shop_field: string, custom_key: string|null, label: string, pricelist_columns: int[]}> $rules
+	 *   Comparison rules.
 	 * @param array{
-	 *   sku_columns: int[],
-	 *   ean_columns: int[],
-	 *   name_columns: int[]
-	 * }                                         $column_mapping Mapping of column indices.
-	 * @param array{
-	 *   sku_map: array<string, int>,
-	 *   ean_map: array<string, int>,
-	 *   product_data: array<int, array{id: int, name: string, sku: string, ean: string}>
-	 * }                                         $product_maps   Pre-loaded product maps.
+	 *   maps: array<string, array<string, int>>,
+	 *   product_data: array<int, array<string, mixed>>
+	 * } $product_maps Pre-loaded product maps.
 	 * @return array{
 	 *   headers: string[],
 	 *   rows: array<int, array<string, mixed>>,
@@ -178,7 +288,7 @@ class Comparator {
 	 */
 	public function compare_pricelist_to_shop(
 		array $rows,
-		array $column_mapping,
+		array $rules,
 		array $product_maps
 	): array {
 		if ( empty( $rows ) ) {
@@ -195,34 +305,50 @@ class Comparator {
 		$matched = 0;
 
 		foreach ( $data as $row ) {
-			// Extract values from configured columns.
-			$sku_value  = $this->extract_column_value( $row, $column_mapping['sku_columns'] );
-			$ean_value  = $this->extract_column_value( $row, $column_mapping['ean_columns'] );
-			$name_value = $this->extract_combined_value( $row, $column_mapping['name_columns'] );
+			// For each rule, extract the pricelist value.
+			$rule_values = array();
+			foreach ( $rules as $rule ) {
+				$rule_values[] = $this->extract_column_value( $row, $rule['pricelist_columns'] );
+			}
 
-			// Try to match by SKU, then by EAN, then by name.
-			$product_id = $this->find_product_id( $sku_value, $ean_value, $name_value, $product_maps );
-			$found      = $product_id > 0;
+			// Find matching product (first rule match wins).
+			[ $product_id, $matched_rule_index ] = $this->find_product_id_by_rules(
+				$rule_values,
+				$rules,
+				$product_maps['maps']
+			);
+			$found = $product_id > 0;
 
 			if ( $found ) {
 				++$matched;
 				$shop_product = $product_maps['product_data'][ $product_id ];
 			} else {
-				$shop_product = array( 'id' => 0, 'name' => '', 'sku' => '', 'ean' => '' );
+				$shop_product = array( 'id' => 0, 'name' => '' );
 			}
 
-			$result[] = array(
-				'pricelist_name' => $name_value,
-				'pricelist_sku'  => $sku_value,
-				'pricelist_ean'  => $ean_value,
-				'found'          => $found,
-				'shop_id'        => $shop_product['id'],
-				'shop_name'      => $shop_product['name'],
-				'shop_sku'       => $shop_product['sku'],
-				'shop_ean'       => $shop_product['ean'],
-				'original_row'   => $row,
-				'original_headers' => $headers,
+			$result_row = array(
+				'found'              => $found,
+				'shop_id'            => $shop_product['id'],
+				'shop_name'          => $shop_product['name'],
+				'matched_rule_index' => $matched_rule_index,
 			);
+
+			// Add per-rule pricelist values.
+			foreach ( $rules as $idx => $rule ) {
+				$result_row[ 'pricelist_rule_' . $idx ] = $rule_values[ $idx ] ?? '';
+			}
+
+			// Add per-rule shop values.
+			foreach ( $rules as $idx => $rule ) {
+				$result_row[ 'shop_rule_' . $idx ] = $found
+					? $this->get_product_field_value( $shop_product, $rule )
+					: '';
+			}
+
+			$result_row['original_row']     = $row;
+			$result_row['original_headers'] = $headers;
+
+			$result[] = $result_row;
 		}
 
 		$total = count( $data );
@@ -238,23 +364,23 @@ class Comparator {
 		);
 	}
 
+	// =========================================================================
+	// Shop → Pricelist comparison
+	// =========================================================================
+
 	/**
 	 * Compare shop products against the price list (Shop → Pricelist).
 	 *
-	 * For each WooCommerce product in the selected brands, checks whether
-	 * it appears in the price list.
+	 * For each WooCommerce product, checks whether it appears in the price list
+	 * using any of the configured rules (first match wins).
 	 *
-	 * @param array<int, array<int, string>>     $rows           Parsed rows from the price list (row 0 = headers).
+	 * @param array<int, array<int, string>> $rows Parsed rows (row 0 = headers).
+	 * @param array<int, array{shop_field: string, custom_key: string|null, label: string, pricelist_columns: int[]}> $rules
+	 *   Comparison rules.
 	 * @param array{
-	 *   sku_columns: int[],
-	 *   ean_columns: int[],
-	 *   name_columns: int[]
-	 * }                                         $column_mapping Mapping of column indices.
-	 * @param array{
-	 *   sku_map: array<string, int>,
-	 *   ean_map: array<string, int>,
-	 *   product_data: array<int, array{id: int, name: string, sku: string, ean: string}>
-	 * }                                         $product_maps   Pre-loaded product maps.
+	 *   maps: array<string, array<string, int>>,
+	 *   product_data: array<int, array<string, mixed>>
+	 * } $product_maps Pre-loaded product maps.
 	 * @return array{
 	 *   rows: array<int, array<string, mixed>>,
 	 *   stats: array{total: int, matched: int, unmatched: int}
@@ -262,22 +388,26 @@ class Comparator {
 	 */
 	public function compare_shop_to_pricelist(
 		array $rows,
-		array $column_mapping,
+		array $rules,
 		array $product_maps
 	): array {
-		// Build lookup maps from price list.
-		$pricelist_sku_set = array();
-		$pricelist_ean_set = array();
+		// Build per-rule pricelist value sets for fast lookup.
+		$pricelist_sets = array(); // $pricelist_sets[$rule_idx][$value] = true
+		foreach ( $rules as $idx => $rule ) {
+			$pricelist_sets[ $idx ] = array();
+		}
 
 		foreach ( array_slice( $rows, 1 ) as $row ) {
-			$sku = $this->extract_column_value( $row, $column_mapping['sku_columns'] );
-			$ean = $this->extract_column_value( $row, $column_mapping['ean_columns'] );
-
-			if ( $sku !== '' ) {
-				$pricelist_sku_set[ $sku ] = true;
-			}
-			if ( $ean !== '' ) {
-				$pricelist_ean_set[ $ean ] = true;
+			foreach ( $rules as $idx => $rule ) {
+				$val = $this->extract_column_value( $row, $rule['pricelist_columns'] );
+				if ( $val !== '' ) {
+					// Normalise name values to lowercase for case-insensitive matching,
+					// consistent with the Pricelist→Shop direction.
+					if ( 'name' === $rule['shop_field'] ) {
+						$val = mb_strtolower( $val );
+					}
+					$pricelist_sets[ $idx ][ $val ] = true;
+				}
 			}
 		}
 
@@ -287,20 +417,43 @@ class Comparator {
 
 		foreach ( $product_maps['product_data'] as $product ) {
 			++$total;
-			$in_pricelist = isset( $pricelist_sku_set[ $product['sku'] ] )
-				|| ( $product['ean'] !== '' && isset( $pricelist_ean_set[ $product['ean'] ] ) );
+
+			// Check if product appears in pricelist via any rule.
+			$in_pricelist        = false;
+			$matched_rule_index  = -1;
+
+			foreach ( $rules as $idx => $rule ) {
+				$shop_val = $this->get_product_field_value( $product, $rule );
+				// Normalise name to lowercase for case-insensitive matching,
+				// consistent with both the pricelist-set build above and the
+				// Pricelist→Shop direction.
+				if ( 'name' === $rule['shop_field'] && $shop_val !== '' ) {
+					$shop_val = mb_strtolower( $shop_val );
+				}
+				if ( $shop_val !== '' && isset( $pricelist_sets[ $idx ][ $shop_val ] ) ) {
+					$in_pricelist       = true;
+					$matched_rule_index = $idx;
+					break;
+				}
+			}
 
 			if ( $in_pricelist ) {
 				++$matched;
 			}
 
-			$result[] = array(
-				'shop_id'       => $product['id'],
-				'shop_name'     => $product['name'],
-				'shop_sku'      => $product['sku'],
-				'shop_ean'      => $product['ean'],
-				'in_pricelist'  => $in_pricelist,
+			$result_row = array(
+				'shop_id'            => $product['id'],
+				'shop_name'          => $product['name'],
+				'in_pricelist'       => $in_pricelist,
+				'matched_rule_index' => $matched_rule_index,
 			);
+
+			// Add per-rule shop values.
+			foreach ( $rules as $idx => $rule ) {
+				$result_row[ 'shop_rule_' . $idx ] = $this->get_product_field_value( $product, $rule );
+			}
+
+			$result[] = $result_row;
 		}
 
 		return array(
@@ -313,42 +466,71 @@ class Comparator {
 		);
 	}
 
+	// =========================================================================
+	// CSV builders
+	// =========================================================================
+
 	/**
 	 * Generate CSV rows for the pricelist-to-shop comparison result.
+	 *
+	 * Columns:
+	 *   Shop ID | Shop Name | {label (Shop)} per rule | {label (Pricelist)} per rule | Matched by | Found in Shop
 	 *
 	 * @param array{
 	 *   headers: string[],
 	 *   rows: array<int, array<string, mixed>>,
 	 *   stats: array{total: int, matched: int, unmatched: int}
 	 * } $result Comparison result.
+	 * @param array<int, array{shop_field: string, custom_key: string|null, label: string, pricelist_columns: int[]}> $rules
+	 *   Comparison rules (for column headers).
 	 * @return array<int, array<int, string>> Rows suitable for File_Handler::write_csv().
 	 */
-	public function build_pricelist_to_shop_csv( array $result ): array {
+	public function build_pricelist_to_shop_csv( array $result, array $rules ): array {
 		$csv_rows = array();
 
-		// Header row.
-		$csv_rows[] = array(
-			__( 'Product Name (Pricelist)', 'wc-sku-ean-comparator' ),
-			__( 'SKU (Pricelist)', 'wc-sku-ean-comparator' ),
-			__( 'EAN (Pricelist)', 'wc-sku-ean-comparator' ),
-			__( 'Found in Shop', 'wc-sku-ean-comparator' ),
+		// Build header row.
+		$header = array(
 			__( 'Shop ID', 'wc-sku-ean-comparator' ),
 			__( 'Product Name (Shop)', 'wc-sku-ean-comparator' ),
-			__( 'SKU (Shop)', 'wc-sku-ean-comparator' ),
-			__( 'EAN (Shop)', 'wc-sku-ean-comparator' ),
 		);
+		foreach ( $rules as $rule ) {
+			/* translators: %s: rule label */
+			$header[] = sprintf( __( '%s (Shop)', 'wc-sku-ean-comparator' ), $rule['label'] );
+		}
+		foreach ( $rules as $rule ) {
+			/* translators: %s: rule label */
+			$header[] = sprintf( __( '%s (Pricelist)', 'wc-sku-ean-comparator' ), $rule['label'] );
+		}
+		$header[] = __( 'Matched by', 'wc-sku-ean-comparator' );
+		$header[] = __( 'Found in Shop', 'wc-sku-ean-comparator' );
+
+		$csv_rows[] = $header;
 
 		foreach ( $result['rows'] as $row ) {
-			$csv_rows[] = array(
-				(string) $row['pricelist_name'],
-				(string) $row['pricelist_sku'],
-				(string) $row['pricelist_ean'],
-				$row['found'] ? __( 'Yes', 'wc-sku-ean-comparator' ) : __( 'No', 'wc-sku-ean-comparator' ),
+			$csv_row = array(
 				$row['found'] ? (string) $row['shop_id'] : '',
 				(string) $row['shop_name'],
-				(string) $row['shop_sku'],
-				(string) $row['shop_ean'],
 			);
+
+			foreach ( $rules as $idx => $rule ) {
+				$csv_row[] = (string) ( $row[ 'shop_rule_' . $idx ] ?? '' );
+			}
+
+			foreach ( $rules as $idx => $rule ) {
+				$csv_row[] = (string) ( $row[ 'pricelist_rule_' . $idx ] ?? '' );
+			}
+
+			// Matched by: rule label or empty.
+			$matched_idx = $row['matched_rule_index'] ?? -1;
+			$csv_row[]   = ( $row['found'] && isset( $rules[ $matched_idx ] ) )
+				? $rules[ $matched_idx ]['label']
+				: '';
+
+			$csv_row[] = $row['found']
+				? __( 'Yes', 'wc-sku-ean-comparator' )
+				: __( 'No', 'wc-sku-ean-comparator' );
+
+			$csv_rows[] = $csv_row;
 		}
 
 		return $csv_rows;
@@ -357,36 +539,172 @@ class Comparator {
 	/**
 	 * Generate CSV rows for the shop-to-pricelist comparison result.
 	 *
+	 * Columns:
+	 *   Shop ID | Shop Name | {label (Shop)} per rule | Matched by | In Pricelist
+	 *
 	 * @param array{
 	 *   rows: array<int, array<string, mixed>>,
 	 *   stats: array{total: int, matched: int, unmatched: int}
 	 * } $result Comparison result.
+	 * @param array<int, array{shop_field: string, custom_key: string|null, label: string, pricelist_columns: int[]}> $rules
+	 *   Comparison rules (for column headers).
 	 * @return array<int, array<int, string>> Rows suitable for File_Handler::write_csv().
 	 */
-	public function build_shop_to_pricelist_csv( array $result ): array {
+	public function build_shop_to_pricelist_csv( array $result, array $rules ): array {
 		$csv_rows = array();
 
-		// Header row.
-		$csv_rows[] = array(
+		// Build header row.
+		$header = array(
 			__( 'Shop ID', 'wc-sku-ean-comparator' ),
 			__( 'Product Name (Shop)', 'wc-sku-ean-comparator' ),
-			__( 'SKU (Shop)', 'wc-sku-ean-comparator' ),
-			__( 'EAN (Shop)', 'wc-sku-ean-comparator' ),
-			__( 'In Pricelist', 'wc-sku-ean-comparator' ),
 		);
+		foreach ( $rules as $rule ) {
+			/* translators: %s: rule label */
+			$header[] = sprintf( __( '%s (Shop)', 'wc-sku-ean-comparator' ), $rule['label'] );
+		}
+		$header[] = __( 'Matched by', 'wc-sku-ean-comparator' );
+		$header[] = __( 'In Pricelist', 'wc-sku-ean-comparator' );
+
+		$csv_rows[] = $header;
 
 		foreach ( $result['rows'] as $row ) {
-			$csv_rows[] = array(
+			$csv_row = array(
 				(string) $row['shop_id'],
 				(string) $row['shop_name'],
-				(string) $row['shop_sku'],
-				(string) $row['shop_ean'],
-				$row['in_pricelist'] ? __( 'Yes', 'wc-sku-ean-comparator' ) : __( 'No', 'wc-sku-ean-comparator' ),
 			);
+
+			foreach ( $rules as $idx => $rule ) {
+				$csv_row[] = (string) ( $row[ 'shop_rule_' . $idx ] ?? '' );
+			}
+
+			// Matched by: rule label or empty.
+			$matched_idx = $row['matched_rule_index'] ?? -1;
+			$csv_row[]   = ( $row['in_pricelist'] && isset( $rules[ $matched_idx ] ) )
+				? $rules[ $matched_idx ]['label']
+				: '';
+
+			$csv_row[] = $row['in_pricelist']
+				? __( 'Yes', 'wc-sku-ean-comparator' )
+				: __( 'No', 'wc-sku-ean-comparator' );
+
+			$csv_rows[] = $csv_row;
 		}
 
 		return $csv_rows;
 	}
+
+	// =========================================================================
+	// Private helpers
+	// =========================================================================
+
+	/**
+	 * Find a WooCommerce product ID by iterating rules in order.
+	 *
+	 * Returns the product ID and the index of the matching rule, or [0, -1].
+	 *
+	 * @param string[] $rule_values           Extracted pricelist values indexed by rule index.
+	 * @param array<int, array<string, mixed>> $rules Comparison rules.
+	 * @param array<string, array<string, int>> $maps  Lookup maps keyed by field identifier.
+	 * @return array{0: int, 1: int} [product_id, rule_index]
+	 */
+	private function find_product_id_by_rules( array $rule_values, array $rules, array $maps ): array {
+		foreach ( $rules as $idx => $rule ) {
+			$value    = $rule_values[ $idx ] ?? '';
+			$map_key  = $this->get_map_key_for_rule( $rule );
+
+			if ( $value === '' || ! isset( $maps[ $map_key ] ) ) {
+				continue;
+			}
+
+			if ( 'name' === $rule['shop_field'] ) {
+				// Case-insensitive name match.
+				$key = mb_strtolower( $value );
+				if ( isset( $maps[ $map_key ][ $key ] ) ) {
+					return array( $maps[ $map_key ][ $key ], $idx );
+				}
+			} else {
+				if ( isset( $maps[ $map_key ][ $value ] ) ) {
+					return array( $maps[ $map_key ][ $value ], $idx );
+				}
+			}
+		}
+
+		return array( 0, -1 );
+	}
+
+	/**
+	 * Return the map array key for a given rule.
+	 *
+	 * @param array{shop_field: string, custom_key: string|null} $rule
+	 * @return string
+	 */
+	private function get_map_key_for_rule( array $rule ): string {
+		if ( 'custom_field' === $rule['shop_field'] ) {
+			return 'cf__' . ( $rule['custom_key'] ?? '' );
+		}
+
+		return $rule['shop_field'];
+	}
+
+	/**
+	 * Get a product's value for a specific rule (shop side).
+	 *
+	 * @param array<string, mixed>                               $product Product data entry.
+	 * @param array{shop_field: string, custom_key: string|null} $rule    Comparison rule.
+	 * @return string
+	 */
+	private function get_product_field_value( array $product, array $rule ): string {
+		$field = $rule['shop_field'];
+
+		switch ( $field ) {
+			case 'id':
+				return (string) ( $product['id'] ?? '' );
+			case 'sku':
+				return (string) ( $product['sku'] ?? '' );
+			case 'ean':
+				return (string) ( $product['ean'] ?? '' );
+			case 'name':
+				return (string) ( $product['name'] ?? '' );
+			case 'custom_field':
+				$key = 'cf__' . ( $rule['custom_key'] ?? '' );
+				return (string) ( $product[ $key ] ?? '' );
+			default:
+				return '';
+		}
+	}
+
+	/**
+	 * Extract a single string value from a row by trying multiple column indices
+	 * (first non-empty value wins).
+	 *
+	 * @param array<int, string> $row     A data row.
+	 * @param int[]              $columns Column indices to try.
+	 * @return string First non-empty value, or empty string.
+	 */
+	private function extract_column_value( array $row, array $columns ): string {
+		foreach ( $columns as $col_index ) {
+			$value = isset( $row[ $col_index ] ) ? trim( $row[ $col_index ] ) : '';
+			if ( $value !== '' ) {
+				return $value;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Convert a meta key to a safe SQL alias (only word chars and underscores).
+	 *
+	 * @param string $key Meta key.
+	 * @return string Safe alias string.
+	 */
+	private function safe_alias( string $key ): string {
+		return preg_replace( '/[^a-zA-Z0-9_]/', '_', $key );
+	}
+
+	// =========================================================================
+	// Product ID queries
+	// =========================================================================
 
 	/**
 	 * Get all published product + variation IDs from WooCommerce.
@@ -432,78 +750,5 @@ class Comparator {
 		$query = new \WP_Query( $args );
 
 		return array_map( 'intval', $query->posts );
-	}
-
-	/**
-	 * Find a WooCommerce product ID by SKU, then EAN, then product name.
-	 *
-	 * @param string  $sku          SKU value from price list.
-	 * @param string  $ean          EAN value from price list.
-	 * @param string  $name         Product name from price list.
-	 * @param array{
-	 *   sku_map: array<string, int>,
-	 *   ean_map: array<string, int>,
-	 *   name_map: array<string, int>,
-	 *   product_data: array<int, array{id: int, name: string, sku: string, ean: string}>
-	 * } $product_maps Pre-loaded product maps.
-	 * @return int Product ID, or 0 if not found.
-	 */
-	private function find_product_id( string $sku, string $ean, string $name, array $product_maps ): int {
-		if ( $sku !== '' && isset( $product_maps['sku_map'][ $sku ] ) ) {
-			return $product_maps['sku_map'][ $sku ];
-		}
-
-		if ( $ean !== '' && isset( $product_maps['ean_map'][ $ean ] ) ) {
-			return $product_maps['ean_map'][ $ean ];
-		}
-
-		// Last resort: match by product name (case-insensitive).
-		if ( $name !== '' ) {
-			$name_key = mb_strtolower( $name );
-			if ( isset( $product_maps['name_map'][ $name_key ] ) ) {
-				return $product_maps['name_map'][ $name_key ];
-			}
-		}
-
-		return 0;
-	}
-
-	/**
-	 * Extract a single string value from a row by trying multiple column indices
-	 * (first non-empty value wins).
-	 *
-	 * @param array<int, string> $row     A data row.
-	 * @param int[]              $columns Column indices to try.
-	 * @return string First non-empty value, or empty string.
-	 */
-	private function extract_column_value( array $row, array $columns ): string {
-		foreach ( $columns as $col_index ) {
-			$value = isset( $row[ $col_index ] ) ? trim( $row[ $col_index ] ) : '';
-			if ( $value !== '' ) {
-				return $value;
-			}
-		}
-
-		return '';
-	}
-
-	/**
-	 * Extract and combine values from multiple columns into a single string.
-	 *
-	 * @param array<int, string> $row     A data row.
-	 * @param int[]              $columns Column indices to combine.
-	 * @return string Combined value (non-empty parts joined with space).
-	 */
-	private function extract_combined_value( array $row, array $columns ): string {
-		$parts = array();
-
-		foreach ( $columns as $col_index ) {
-			$value = isset( $row[ $col_index ] ) ? trim( $row[ $col_index ] ) : '';
-			if ( $value !== '' ) {
-				$parts[] = $value;
-			}
-		}
-
-		return implode( ' ', $parts );
 	}
 }

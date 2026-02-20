@@ -310,6 +310,66 @@ class Ajax_Handler {
 	}
 
 	// =========================================================================
+	// Meta key endpoint
+	// =========================================================================
+
+	/**
+	 * Return unique postmeta keys for WooCommerce products (wp_ajax_wc_sec_get_meta_keys).
+	 *
+	 * Accepts optional $_POST['search'] to filter results for Select2 AJAX.
+	 * Returns up to 200 meta keys sorted alphabetically.
+	 *
+	 * @return void
+	 */
+	public function handle_get_meta_keys(): void {
+		$this->verify_request();
+
+		global $wpdb;
+
+		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( $search !== '' ) {
+			$like = '%' . $wpdb->esc_like( $search ) . '%';
+			$rows = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT DISTINCT pm.meta_key
+					FROM {$wpdb->postmeta} pm
+					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					WHERE p.post_type IN ('product','product_variation')
+					  AND p.post_status != 'trash'
+					  AND pm.meta_key LIKE %s
+					ORDER BY pm.meta_key
+					LIMIT 200",
+					$like
+				)
+			);
+		} else {
+			$rows = $wpdb->get_col(
+				"SELECT DISTINCT pm.meta_key
+				FROM {$wpdb->postmeta} pm
+				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				WHERE p.post_type IN ('product','product_variation')
+				  AND p.post_status != 'trash'
+				ORDER BY pm.meta_key
+				LIMIT 200"
+			);
+		}
+		// phpcs:enable
+
+		$results = array();
+		foreach ( (array) $rows as $key ) {
+			$results[] = array(
+				'id'   => $key,
+				'text' => $key,
+			);
+		}
+
+		// Send results array directly so JS processResults receives response.data as the array.
+		wp_send_json_success( $results );
+	}
+
+	// =========================================================================
 	// Comparison handlers
 	// =========================================================================
 
@@ -321,7 +381,10 @@ class Ajax_Handler {
 	 *   - sheet_index: int (default 0)
 	 *   - header_row: int (default 0 = auto-detect; 1-based when specified)
 	 *   - brand_slugs: string[] (JSON array)
-	 *   - column_mapping: JSON object { sku_columns: int[], ean_columns: int[], name_columns: int[] }
+	 *   - column_mapping: JSON object {
+	 *       rules: [{ shop_field, custom_key, label, pricelist_columns: int[] }],
+	 *       header_row, sheet_index, sheet_name
+	 *     }
 	 *
 	 * @return void
 	 */
@@ -341,21 +404,52 @@ class Ajax_Handler {
 		$brand_slugs = array_map( 'sanitize_key', $brand_slugs );
 
 		$column_mapping_raw = isset( $_POST['column_mapping'] ) ? wp_unslash( $_POST['column_mapping'] ) : '{}';
-		$column_mapping     = json_decode( sanitize_text_field( $column_mapping_raw ), true );
+		// Use wp_kses_no_null instead of sanitize_text_field to preserve special chars in meta key values.
+		$column_mapping = json_decode( $column_mapping_raw, true );
 
 		if ( ! is_array( $column_mapping ) ||
-			! isset( $column_mapping['sku_columns'] ) ||
-			! is_array( $column_mapping['sku_columns'] ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid column mapping.', 'wc-sku-ean-comparator' ) ) );
+			! isset( $column_mapping['rules'] ) ||
+			! is_array( $column_mapping['rules'] ) ||
+			empty( $column_mapping['rules'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'At least one mapping rule is required.', 'wc-sku-ean-comparator' ) ) );
 		}
 
-		$column_mapping = array(
-			'sku_columns'  => array_map( 'absint', (array) $column_mapping['sku_columns'] ),
-			'ean_columns'  => array_map( 'absint', (array) ( $column_mapping['ean_columns'] ?? array() ) ),
-			'name_columns' => array_map( 'absint', (array) ( $column_mapping['name_columns'] ?? array() ) ),
-			'header_row'   => $header_row,
-			'sheet_index'  => $sheet_index,
-		);
+		// Sanitize and validate each rule.
+		$allowed_fields = array( 'id', 'sku', 'ean', 'name', 'custom_field' );
+		$rules          = array();
+		foreach ( $column_mapping['rules'] as $raw_rule ) {
+			if ( ! is_array( $raw_rule ) ) {
+				continue;
+			}
+			$field = isset( $raw_rule['shop_field'] ) ? sanitize_key( $raw_rule['shop_field'] ) : '';
+			if ( ! in_array( $field, $allowed_fields, true ) ) {
+				continue;
+			}
+			$custom_key = null;
+			if ( 'custom_field' === $field ) {
+				$custom_key = isset( $raw_rule['custom_key'] ) ? sanitize_text_field( wp_unslash( (string) $raw_rule['custom_key'] ) ) : '';
+				if ( '' === $custom_key ) {
+					continue; // custom_field rule with no key is invalid.
+				}
+			}
+			$pricelist_columns = isset( $raw_rule['pricelist_columns'] ) && is_array( $raw_rule['pricelist_columns'] )
+				? array_map( 'absint', $raw_rule['pricelist_columns'] )
+				: array();
+			if ( empty( $pricelist_columns ) ) {
+				continue; // Rule with no columns mapped is invalid.
+			}
+			$label   = isset( $raw_rule['label'] ) ? sanitize_text_field( wp_unslash( (string) $raw_rule['label'] ) ) : $field;
+			$rules[] = array(
+				'shop_field'        => $field,
+				'custom_key'        => $custom_key,
+				'label'             => $label,
+				'pricelist_columns' => $pricelist_columns,
+			);
+		}
+
+		if ( empty( $rules ) ) {
+			wp_send_json_error( array( 'message' => __( 'No valid mapping rules provided.', 'wc-sku-ean-comparator' ) ) );
+		}
 
 		if ( '' === $filename ) {
 			wp_send_json_error( array( 'message' => __( 'Filename is required.', 'wc-sku-ean-comparator' ) ) );
@@ -387,8 +481,8 @@ class Ajax_Handler {
 			wp_send_json_error( array( 'message' => __( 'The file contains no data rows.', 'wc-sku-ean-comparator' ) ) );
 		}
 
-		// Enrich column_mapping with human-readable header names for history display.
-		$file_headers = $rows[0] ?? array();
+		// Enrich each rule with human-readable pricelist column names for history display.
+		$file_headers  = $rows[0] ?? array();
 		$resolve_names = static function ( array $indices ) use ( $file_headers ): array {
 			return array_values(
 				array_map(
@@ -399,15 +493,24 @@ class Ajax_Handler {
 				)
 			);
 		};
-		$column_mapping['sku_column_names']  = $resolve_names( $column_mapping['sku_columns'] );
-		$column_mapping['ean_column_names']  = $resolve_names( $column_mapping['ean_columns'] );
-		$column_mapping['name_column_names'] = $resolve_names( $column_mapping['name_columns'] );
-		$column_mapping['sheet_name']        = $sheet_name;
-		$product_maps = $this->comparator->load_product_maps( $brand_slugs );
+		foreach ( $rules as &$rule ) {
+			$rule['pricelist_column_names'] = $resolve_names( $rule['pricelist_columns'] );
+		}
+		unset( $rule );
+
+		// Build the column_mapping to persist.
+		$column_mapping = array(
+			'rules'       => $rules,
+			'header_row'  => $header_row,
+			'sheet_index' => $sheet_index,
+			'sheet_name'  => $sheet_name,
+		);
+
+		$product_maps = $this->comparator->load_product_maps( $rules, $brand_slugs );
 
 		// Run comparisons.
-		$pricelist_result = $this->comparator->compare_pricelist_to_shop( $rows, $column_mapping, $product_maps );
-		$shop_result      = $this->comparator->compare_shop_to_pricelist( $rows, $column_mapping, $product_maps );
+		$pricelist_result = $this->comparator->compare_pricelist_to_shop( $rows, $rules, $product_maps );
+		$shop_result      = $this->comparator->compare_shop_to_pricelist( $rows, $rules, $product_maps );
 
 		// Build brand label for filenames.
 		$brand_label = ! empty( $brand_slugs )
@@ -418,8 +521,8 @@ class Ajax_Handler {
 		$csv1_filename = $this->file_handler->generate_csv_filename( $brand_label, 'pricelist-to-shop' );
 		$csv2_filename = $this->file_handler->generate_csv_filename( $brand_label, 'shop-to-pricelist' );
 
-		$csv1_rows = $this->comparator->build_pricelist_to_shop_csv( $pricelist_result );
-		$csv2_rows = $this->comparator->build_shop_to_pricelist_csv( $shop_result );
+		$csv1_rows = $this->comparator->build_pricelist_to_shop_csv( $pricelist_result, $rules );
+		$csv2_rows = $this->comparator->build_shop_to_pricelist_csv( $shop_result, $rules );
 
 		$csv1_path = $this->file_handler->write_csv( $csv1_filename, $csv1_rows );
 		$csv2_path = $this->file_handler->write_csv( $csv2_filename, $csv2_rows );
@@ -548,9 +651,15 @@ class Ajax_Handler {
 		$header_row     = isset( $column_mapping['header_row'] ) ? absint( $column_mapping['header_row'] ) : 0;
 		$sheet_index    = isset( $column_mapping['sheet_index'] ) ? absint( $column_mapping['sheet_index'] ) : 0;
 
-		// Validate column_mapping structure.
-		if ( ! is_array( $column_mapping ) || ! isset( $column_mapping['sku_columns'] ) ) {
-			wp_send_json_error( array( 'message' => __( 'Stored column mapping is invalid.', 'wc-sku-ean-comparator' ) ) );
+		// Validate column_mapping structure (rules-based format).
+		if ( ! is_array( $column_mapping ) || ! isset( $column_mapping['rules'] ) || ! is_array( $column_mapping['rules'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Stored column mapping is invalid or uses a legacy format. Please run a new comparison.', 'wc-sku-ean-comparator' ) ) );
+		}
+
+		$rules = $column_mapping['rules'];
+
+		if ( empty( $rules ) ) {
+			wp_send_json_error( array( 'message' => __( 'No valid mapping rules found in stored comparison.', 'wc-sku-ean-comparator' ) ) );
 		}
 
 		// Get file path.
@@ -579,7 +688,7 @@ class Ajax_Handler {
 			wp_send_json_error( array( 'message' => __( 'The file contains no data rows.', 'wc-sku-ean-comparator' ) ) );
 		}
 
-		// Refresh header names in column_mapping from the re-parsed file.
+		// Refresh human-readable pricelist column names in each rule from the re-parsed file.
 		$file_headers  = $rows[0] ?? array();
 		$resolve_names = static function ( array $indices ) use ( $file_headers ): array {
 			return array_values(
@@ -591,18 +700,21 @@ class Ajax_Handler {
 				)
 			);
 		};
-		$column_mapping['sku_column_names']  = $resolve_names( (array) ( $column_mapping['sku_columns'] ?? array() ) );
-		$column_mapping['ean_column_names']  = $resolve_names( (array) ( $column_mapping['ean_columns'] ?? array() ) );
-		$column_mapping['name_column_names'] = $resolve_names( (array) ( $column_mapping['name_columns'] ?? array() ) );
-		$column_mapping['sheet_name']        = $sheet_name;
-		$column_mapping['sheet_index']       = $sheet_index;
+		foreach ( $rules as &$rule ) {
+			$rule['pricelist_column_names'] = $resolve_names( (array) ( $rule['pricelist_columns'] ?? array() ) );
+		}
+		unset( $rule );
+
+		$column_mapping['rules']       = $rules;
+		$column_mapping['sheet_name']  = $sheet_name;
+		$column_mapping['sheet_index'] = $sheet_index;
 
 		// Load product maps.
-		$product_maps = $this->comparator->load_product_maps( $brand_slugs );
+		$product_maps = $this->comparator->load_product_maps( $rules, $brand_slugs );
 
 		// Run comparisons.
-		$pricelist_result = $this->comparator->compare_pricelist_to_shop( $rows, $column_mapping, $product_maps );
-		$shop_result      = $this->comparator->compare_shop_to_pricelist( $rows, $column_mapping, $product_maps );
+		$pricelist_result = $this->comparator->compare_pricelist_to_shop( $rows, $rules, $product_maps );
+		$shop_result      = $this->comparator->compare_shop_to_pricelist( $rows, $rules, $product_maps );
 
 		// Delete old CSV files before writing new ones.
 		foreach ( array( 'csv_pricelist_to_shop', 'csv_shop_to_pricelist' ) as $csv_field ) {
@@ -619,8 +731,8 @@ class Ajax_Handler {
 		$csv1_filename = $this->file_handler->generate_csv_filename( $brand_label, 'pricelist-to-shop' );
 		$csv2_filename = $this->file_handler->generate_csv_filename( $brand_label, 'shop-to-pricelist' );
 
-		$csv1_rows = $this->comparator->build_pricelist_to_shop_csv( $pricelist_result );
-		$csv2_rows = $this->comparator->build_shop_to_pricelist_csv( $shop_result );
+		$csv1_rows = $this->comparator->build_pricelist_to_shop_csv( $pricelist_result, $rules );
+		$csv2_rows = $this->comparator->build_shop_to_pricelist_csv( $shop_result, $rules );
 
 		$csv1_path = $this->file_handler->write_csv( $csv1_filename, $csv1_rows );
 		$csv2_path = $this->file_handler->write_csv( $csv2_filename, $csv2_rows );

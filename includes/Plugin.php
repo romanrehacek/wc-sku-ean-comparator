@@ -74,6 +74,9 @@ class Plugin {
 	 * @return void
 	 */
 	private function register_hooks(): void {
+		// DB upgrade check on every load (cheap version-string comparison).
+		add_action( 'plugins_loaded', array( History::class, 'maybe_upgrade_db' ) );
+
 		// Admin menu.
 		add_action( 'admin_menu', array( $this->admin_page, 'register_menu' ) );
 
@@ -87,6 +90,7 @@ class Plugin {
 		add_action( 'wp_ajax_wc_sec_get_sheet_names', array( $this->ajax_handler, 'handle_get_sheet_names' ) );
 		add_action( 'wp_ajax_wc_sec_get_columns', array( $this->ajax_handler, 'handle_get_columns' ) );
 		add_action( 'wp_ajax_wc_sec_get_brands', array( $this->ajax_handler, 'handle_get_brands' ) );
+		add_action( 'wp_ajax_wc_sec_get_meta_keys', array( $this->ajax_handler, 'handle_get_meta_keys' ) );
 		add_action( 'wp_ajax_wc_sec_run_comparison', array( $this->ajax_handler, 'handle_run_comparison' ) );
 		add_action( 'wp_ajax_wc_sec_rerun_comparison', array( $this->ajax_handler, 'handle_rerun_comparison' ) );
 		add_action( 'wp_ajax_wc_sec_get_results', array( $this->ajax_handler, 'handle_get_results' ) );

@@ -71,33 +71,45 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 			</tr>
 		<?php if ( ! empty( $column_mapping ) ) : ?>
 		<tr>
-			<th><?php esc_html_e( 'Column Mapping', 'wc-sku-ean-comparator' ); ?></th>
+			<th><?php esc_html_e( 'Mapping Rules', 'wc-sku-ean-comparator' ); ?></th>
 			<td>
 				<?php
-				// Prefer human-readable header names if available, fall back to indices.
-				$sku_display  = ! empty( $column_mapping['sku_column_names'] )
-					? $column_mapping['sku_column_names']
-					: array_map( 'intval', (array) ( $column_mapping['sku_columns'] ?? array() ) );
-				$ean_display  = ! empty( $column_mapping['ean_column_names'] )
-					? $column_mapping['ean_column_names']
-					: array_map( 'intval', (array) ( $column_mapping['ean_columns'] ?? array() ) );
-				$name_display = ! empty( $column_mapping['name_column_names'] )
-					? $column_mapping['name_column_names']
-					: array_map( 'intval', (array) ( $column_mapping['name_columns'] ?? array() ) );
+				$rules = isset( $column_mapping['rules'] ) && is_array( $column_mapping['rules'] )
+					? $column_mapping['rules']
+					: array();
+				if ( ! empty( $rules ) ) :
 				?>
-				<?php if ( ! empty( $sku_display ) ) : ?>
-					<span class="wc-sec-mapping-label"><?php esc_html_e( 'SKU:', 'wc-sku-ean-comparator' ); ?></span>
-					<?php echo esc_html( implode( ', ', array_map( 'strval', $sku_display ) ) ); ?>
-				<?php endif; ?>
-				<?php if ( ! empty( $ean_display ) ) : ?>
-					&nbsp;&nbsp;
-					<span class="wc-sec-mapping-label"><?php esc_html_e( 'EAN:', 'wc-sku-ean-comparator' ); ?></span>
-					<?php echo esc_html( implode( ', ', array_map( 'strval', $ean_display ) ) ); ?>
-				<?php endif; ?>
-				<?php if ( ! empty( $name_display ) ) : ?>
-					&nbsp;&nbsp;
-					<span class="wc-sec-mapping-label"><?php esc_html_e( 'Name:', 'wc-sku-ean-comparator' ); ?></span>
-					<?php echo esc_html( implode( ', ', array_map( 'strval', $name_display ) ) ); ?>
+				<table class="wc-sec-rules-summary-table">
+					<thead>
+						<tr>
+							<th>#</th>
+							<th><?php esc_html_e( 'Label', 'wc-sku-ean-comparator' ); ?></th>
+							<th><?php esc_html_e( 'Shop Field', 'wc-sku-ean-comparator' ); ?></th>
+							<th><?php esc_html_e( 'Pricelist Columns', 'wc-sku-ean-comparator' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+					<?php foreach ( $rules as $i => $rule ) :
+						$field      = isset( $rule['shop_field'] ) ? esc_html( $rule['shop_field'] ) : '';
+						$label      = isset( $rule['label'] ) ? esc_html( $rule['label'] ) : $field;
+						$custom_key = ( 'custom_field' === $rule['shop_field'] && ! empty( $rule['custom_key'] ) )
+							? ' <code>' . esc_html( $rule['custom_key'] ) . '</code>'
+							: '';
+						$col_names  = ! empty( $rule['pricelist_column_names'] )
+							? array_map( 'esc_html', (array) $rule['pricelist_column_names'] )
+							: array_map( 'intval', (array) ( $rule['pricelist_columns'] ?? array() ) );
+					?>
+					<tr>
+						<td><?php echo esc_html( (string) ( $i + 1 ) ); ?></td>
+						<td><?php echo esc_html( $label ); ?></td>
+						<td><?php echo esc_html( $field ); ?><?php echo wp_kses( $custom_key, array( 'code' => array() ) ); ?></td>
+						<td><?php echo esc_html( implode( ', ', array_map( 'strval', $col_names ) ) ); ?></td>
+					</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+				<?php else : ?>
+					<em><?php esc_html_e( 'No rules stored.', 'wc-sku-ean-comparator' ); ?></em>
 				<?php endif; ?>
 			</td>
 		</tr>
@@ -181,19 +193,10 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 			<div class="wc-sec-table-scroll">
 				<table class="widefat striped wc-sec-table" id="wc-sec-detail-table-pricelist">
 					<thead>
-						<tr>
-							<th><?php esc_html_e( 'Name (Pricelist)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'SKU (Pricelist)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'EAN (Pricelist)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'Status', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'Shop ID', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'Name (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'SKU (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'EAN (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-						</tr>
+						<tr id="wc-sec-detail-thead-pricelist"></tr>
 					</thead>
 					<tbody id="wc-sec-detail-tbody-pricelist">
-						<tr><td colspan="8"><?php esc_html_e( 'Loading...', 'wc-sku-ean-comparator' ); ?></td></tr>
+						<tr><td colspan="6"><?php esc_html_e( 'Loading...', 'wc-sku-ean-comparator' ); ?></td></tr>
 					</tbody>
 				</table>
 			</div>
@@ -205,13 +208,7 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 			<div class="wc-sec-table-scroll">
 				<table class="widefat striped wc-sec-table" id="wc-sec-detail-table-shop">
 					<thead>
-						<tr>
-							<th><?php esc_html_e( 'Shop ID', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'Name (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'SKU (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'EAN (Shop)', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'In Pricelist', 'wc-sku-ean-comparator' ); ?></th>
-						</tr>
+						<tr id="wc-sec-detail-thead-shop"></tr>
 					</thead>
 					<tbody id="wc-sec-detail-tbody-shop">
 						<tr><td colspan="5"><?php esc_html_e( 'Loading...', 'wc-sku-ean-comparator' ); ?></td></tr>
@@ -224,6 +221,7 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 		<!-- Hidden data for JS -->
 		<input type="hidden" id="wc-sec-detail-comparison-id" value="<?php echo esc_attr( $comparison['id'] ); ?>">
 		<input type="hidden" id="wc-sec-detail-nonce" value="<?php echo esc_attr( wp_create_nonce( 'wc_sec_ajax' ) ); ?>">
+		<input type="hidden" id="wc-sec-detail-rules" value="<?php echo esc_attr( wp_json_encode( $column_mapping['rules'] ?? array() ) ); ?>">
 
 	<?php else : ?>
 		<p class="description">

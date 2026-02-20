@@ -23,9 +23,10 @@
 		previewRows: [],
 		brandSlugs: [],
 		columnMapping: {
-			sku_columns: [],
-			ean_columns: [],
-			name_columns: []
+			rules: [],
+			header_row: 0,
+			sheet_index: 0,
+			sheet_name: ''
 		},
 		comparisonId: 0,
 		currentTab: 'pricelist',
@@ -68,7 +69,7 @@
 	 * @return {string}
 	 */
 	function escHtml( str ) {
-		return $( '<span>' ).text( str ).html();
+		return $( '<span>' ).text( String( str === null || str === undefined ? '' : str ) ).html();
 	}
 
 	/**
@@ -95,6 +96,21 @@
 			return ( bytes / 1024 ).toFixed( 1 ) + ' KB';
 		}
 		return bytes + ' B';
+	}
+
+	/**
+	 * Generate a default label from a shop field name.
+	 *
+	 * @param {string} shopField
+	 * @param {string} customKey
+	 * @return {string}
+	 */
+	function defaultLabelForField( shopField, customKey ) {
+		if ( 'custom_field' === shopField ) {
+			return customKey || 'custom_field';
+		}
+		var map = { id: 'ID', sku: 'SKU', ean: 'EAN', name: 'Name' };
+		return map[ shopField ] || shopField;
 	}
 
 	// =========================================================================
@@ -488,7 +504,7 @@
 	} );
 
 	// =========================================================================
-	// Step 3: Column mapping
+	// Step 3: Column mapping (rules-based)
 	// =========================================================================
 
 	function loadColumns() {
@@ -522,7 +538,7 @@
 			state.previewRows = response.data.preview_rows;
 
 			renderPreviewTable( state.headers, state.previewRows, response.data.pre_header_rows || [] );
-			renderColumnSelectors( state.headers );
+			renderRulesUI( state.headers );
 
 			$( '#wc-sec-preview-wrap' ).removeClass( 'hidden' );
 			$( '#wc-sec-mapping-wrap' ).removeClass( 'hidden' );
@@ -533,8 +549,8 @@
 
 	// Reload columns when user manually changes header row number.
 	$( document ).on( 'click', '#wc-sec-reload-columns-btn', function () {
-		// Reset column mapping when reloading.
-		state.columnMapping = { sku_columns: [], ean_columns: [], name_columns: [] };
+		// Reset rules when reloading columns.
+		state.columnMapping.rules = [];
 		$( '#wc-sec-step3-next' ).prop( 'disabled', true );
 		loadColumns();
 	} );
@@ -573,58 +589,433 @@
 		} );
 	}
 
-	function renderColumnSelectors( headers ) {
-		var targets = [
-			{ id: 'wc-sec-sku-columns', key: 'sku_columns' },
-			{ id: 'wc-sec-ean-columns', key: 'ean_columns' },
-			{ id: 'wc-sec-name-columns', key: 'name_columns' }
-		];
+	// =========================================================================
+	// Rules UI
+	// =========================================================================
 
-		$.each( targets, function ( i, target ) {
-			var $wrap = $( '#' + target.id ).empty();
-			$.each( headers, function ( idx, name ) {
-				$wrap.append(
-					'<label class="wc-sec-column-toggle" data-key="' + target.key + '" data-index="' + idx + '">' +
-					'<input type="checkbox" value="' + idx + '" data-key="' + target.key + '">' +
-					escHtml( name ) +
-					'</label>'
-				);
+	/**
+	 * Re-render all rule cards from state.columnMapping.rules.
+	 *
+	 * @param {string[]} [headers] Pricelist headers; uses state.headers if omitted.
+	 */
+	function renderRulesUI( headers ) {
+		var hdrs = headers || state.headers;
+		var $container = $( '#wc-sec-rules-container' );
+		$container.empty();
+
+		$.each( state.columnMapping.rules, function ( idx, rule ) {
+			$container.append( buildRuleCard( rule, idx, hdrs ) );
+		} );
+
+		// Init Select2 only on custom-key fields that are currently visible
+		// (i.e. rules where shop_field === 'custom_field').
+		$container.find( '.wc-sec-rule-card' ).each( function () {
+			var $card = $( this );
+			var idx   = parseInt( $card.data( 'rule-idx' ), 10 );
+			var rule  = state.columnMapping.rules[ idx ];
+			if ( rule && 'custom_field' === rule.shop_field ) {
+				initSelect2ForRule( $card.find( '.wc-sec-rule-custom-key' ) );
+			}
+		} );
+
+		validateColumnMapping();
+	}
+
+	/**
+	 * Build HTML for a single rule card.
+	 *
+	 * @param {Object}   rule
+	 * @param {number}   idx
+	 * @param {string[]} headers
+	 * @return {string}
+	 */
+	function buildRuleCard( rule, idx, headers ) {
+		var shopField  = rule.shop_field || 'sku';
+		var label      = rule.label || defaultLabelForField( shopField, rule.custom_key || '' );
+		var customKey  = rule.custom_key || '';
+		var selCols    = rule.pricelist_columns || [];
+		var isCustom   = ( 'custom_field' === shopField );
+		var total      = state.columnMapping.rules.length;
+
+		// Field select options.
+		var fieldOptions = [
+			{ value: 'sku',          text: 'SKU' },
+			{ value: 'ean',          text: 'EAN' },
+			{ value: 'name',         text: 'Name' },
+			{ value: 'id',           text: 'ID' },
+			{ value: 'custom_field', text: 'Custom field (meta key)' }
+		];
+		var fieldHtml = '';
+		$.each( fieldOptions, function ( i, opt ) {
+			fieldHtml += '<option value="' + escHtml( opt.value ) + '"' +
+				( shopField === opt.value ? ' selected' : '' ) + '>' +
+				escHtml( opt.text ) + '</option>';
+		} );
+
+		// Column checkboxes.
+		var colHtml = '';
+		if ( headers.length ) {
+			$.each( headers, function ( colIdx, colName ) {
+				var checked = ( selCols.indexOf( colIdx ) !== -1 ) ? ' checked' : '';
+				colHtml += '<label class="wc-sec-column-toggle' + ( checked ? ' selected' : '' ) + '">' +
+					'<input type="checkbox" class="wc-sec-rule-column-check"' +
+					' value="' + colIdx + '"' + checked + '>' +
+					escHtml( colName ) +
+					'</label>';
 			} );
+		} else {
+			colHtml = '<em>No columns loaded.</em>';
+		}
+
+		var html =
+			'<div class="wc-sec-rule-card" data-rule-idx="' + idx + '">' +
+				'<div class="wc-sec-rule-card__header">' +
+					'<span class="wc-sec-rule-card__num">' + escHtml( String( idx + 1 ) ) + '</span>' +
+					'<span class="wc-sec-rule-card__title">' + escHtml( label ) + '</span>' +
+					'<span class="wc-sec-rule-order-btns">' +
+						'<button type="button" class="button button-small wc-sec-rule-up-btn"' +
+							( idx === 0 ? ' disabled' : '' ) + ' title="Move up">&#9650;</button>' +
+						'<button type="button" class="button button-small wc-sec-rule-down-btn"' +
+							( idx === total - 1 ? ' disabled' : '' ) + ' title="Move down">&#9660;</button>' +
+					'</span>' +
+					'<button type="button" class="button button-small wc-sec-rule-remove-btn" title="Remove rule">&#10005;</button>' +
+				'</div>' +
+				'<div class="wc-sec-rule-card__body">' +
+					'<div class="wc-sec-rule-row">' +
+						'<label class="wc-sec-rule-field-label">Shop field</label>' +
+						'<select class="wc-sec-rule-shopfield">' + fieldHtml + '</select>' +
+					'</div>' +
+					'<div class="wc-sec-rule-custom-key-wrap' + ( isCustom ? '' : ' hidden' ) + '">' +
+						'<label class="wc-sec-rule-field-label">Meta key</label>' +
+						'<select class="wc-sec-rule-custom-key" style="min-width:220px;">' +
+							( customKey
+								? '<option value="' + escHtml( customKey ) + '" selected>' + escHtml( customKey ) + '</option>'
+								: '' ) +
+						'</select>' +
+					'</div>' +
+					'<div class="wc-sec-rule-row">' +
+						'<label class="wc-sec-rule-field-label">Label</label>' +
+						'<input type="text" class="regular-text wc-sec-rule-label" value="' + escHtml( label ) + '">' +
+					'</div>' +
+					'<div class="wc-sec-rule-row">' +
+						'<label class="wc-sec-rule-field-label">Pricelist columns</label>' +
+						'<div class="wc-sec-column-selector wc-sec-rule-columns-wrap">' + colHtml + '</div>' +
+					'</div>' +
+				'</div>' +
+			'</div>';
+
+		return html;
+	}
+
+	/**
+	 * Initialise Select2 AJAX on the custom-key <select> inside a rule card.
+	 *
+	 * @param {jQuery} $select The .wc-sec-rule-custom-key element.
+	 */
+	/**
+	 * Initialise selectWoo / Select2 AJAX on the custom-key <select> inside a rule card.
+	 * Must be called after the element is visible in the DOM.
+	 *
+	 * @param {jQuery} $select The .wc-sec-rule-custom-key element.
+	 */
+	function initSelect2ForRule( $select ) {
+		// Prefer WooCommerce's selectWoo; fall back to plain select2.
+		var fn = $.fn.selectWoo || $.fn.select2;
+		if ( typeof fn !== 'function' ) {
+			return;
+		}
+
+		// Destroy any previous instance to avoid double-init on re-render.
+		// Use the same fn that was (or will be) used to initialise.
+		try { fn.call( $select, 'destroy' ); } catch ( e ) {}
+
+		var ajaxConfig = {
+			url: data.ajaxUrl,
+			type: 'POST',
+			dataType: 'json',
+			delay: 250,
+			data: function ( params ) {
+				return {
+					action: 'wc_sec_get_meta_keys',
+					nonce: data.nonce,
+					search: params.term || ''
+				};
+			},
+			processResults: function ( response ) {
+				// PHP sends wp_send_json_success( $results ) so response.data
+				// is the flat results array (Select2 {id, text} format).
+				if ( response.success && Array.isArray( response.data ) ) {
+					return { results: response.data };
+				}
+				return { results: [] };
+			},
+			cache: false
+		};
+
+		fn.call( $select, {
+			width: '100%',
+			placeholder: 'Type to search meta key...',
+			allowClear: true,
+			minimumInputLength: 0,
+			ajax: ajaxConfig
+		} );
+
+		// selectWoo/Select2 with minimumInputLength:0 + ajax does NOT auto-fetch
+		// on open — trigger a search with empty term when the dropdown opens.
+		// Both selectWoo and vanilla select2 fire the 'select2:open' event.
+		$select.on( 'select2:open', function () {
+			setTimeout( function () {
+				// Both libraries use the .select2-search__field CSS class.
+				var $search = $( '.select2-search__field:visible' ).last();
+				$search.trigger( 'input' );
+			}, 0 );
 		} );
 	}
 
-	// Column checkbox change.
-	$( document ).on( 'change', '[data-key]', function () {
-		var key   = $( this ).data( 'key' );
-		var index = parseInt( $( this ).val(), 10 );
-		var checked = $( this ).is( ':checked' );
+	/**
+	 * Read all inputs from a rule card DOM element back into state.
+	 *
+	 * @param {jQuery} $card     The .wc-sec-rule-card element.
+	 * @param {number} idx       Rule index in state.columnMapping.rules.
+	 */
+	function syncRuleFromCard( $card, idx ) {
+		if ( ! state.columnMapping.rules[ idx ] ) {
+			return;
+		}
+		var rule      = state.columnMapping.rules[ idx ];
+		var shopField = $card.find( '.wc-sec-rule-shopfield' ).val();
+		var label     = $card.find( '.wc-sec-rule-label' ).val();
+		var customKey = $card.find( '.wc-sec-rule-custom-key' ).val() || '';
+		var cols      = [];
+		$card.find( '.wc-sec-rule-column-check:checked' ).each( function () {
+			cols.push( parseInt( $( this ).val(), 10 ) );
+		} );
 
-		$( this ).closest( '.wc-sec-column-toggle' ).toggleClass( 'selected', checked );
+		rule.shop_field = shopField;
+		rule.label      = label;
+		rule.custom_key = ( 'custom_field' === shopField ) ? customKey : null;
+		rule.pricelist_columns = cols;
+	}
 
-		if ( checked ) {
-			if ( state.columnMapping[ key ].indexOf( index ) === -1 ) {
-				state.columnMapping[ key ].push( index );
+	/**
+	 * Add a new default rule and re-render the rules UI.
+	 */
+	function addRule() {
+		syncAllRulesFromDOM();
+		state.columnMapping.rules.push( {
+			shop_field: 'sku',
+			custom_key: null,
+			label: 'SKU',
+			pricelist_columns: [],
+			pricelist_column_names: []
+		} );
+		renderRulesUI();
+	}
+
+	/**
+	 * Remove a rule at the given index.
+	 *
+	 * @param {number} idx
+	 */
+	function removeRule( idx ) {
+		syncAllRulesFromDOM();
+		state.columnMapping.rules.splice( idx, 1 );
+		renderRulesUI();
+	}
+
+	/**
+	 * Move a rule up (swap with the one above).
+	 *
+	 * @param {number} idx
+	 */
+	function moveRuleUp( idx ) {
+		if ( idx <= 0 ) { return; }
+		var tmp = state.columnMapping.rules[ idx - 1 ];
+		state.columnMapping.rules[ idx - 1 ] = state.columnMapping.rules[ idx ];
+		state.columnMapping.rules[ idx ]      = tmp;
+		renderRulesUI();
+	}
+
+	/**
+	 * Move a rule down (swap with the one below).
+	 *
+	 * @param {number} idx
+	 */
+	function moveRuleDown( idx ) {
+		var last = state.columnMapping.rules.length - 1;
+		if ( idx >= last ) { return; }
+		var tmp = state.columnMapping.rules[ idx + 1 ];
+		state.columnMapping.rules[ idx + 1 ] = state.columnMapping.rules[ idx ];
+		state.columnMapping.rules[ idx ]      = tmp;
+		renderRulesUI();
+	}
+
+	// -------------------------------------------------------------------------
+	// Rule UI event delegation
+	// -------------------------------------------------------------------------
+
+	// Add rule button.
+	$( document ).on( 'click', '#wc-sec-add-rule-btn', function () {
+		addRule();
+	} );
+
+	// Remove rule button.
+	$( document ).on( 'click', '.wc-sec-rule-remove-btn', function () {
+		var $card = $( this ).closest( '.wc-sec-rule-card' );
+		var idx   = parseInt( $card.data( 'rule-idx' ), 10 );
+		removeRule( idx );
+	} );
+
+	// Move up button.
+	$( document ).on( 'click', '.wc-sec-rule-up-btn', function () {
+		var $card = $( this ).closest( '.wc-sec-rule-card' );
+		var idx   = parseInt( $card.data( 'rule-idx' ), 10 );
+		syncAllRulesFromDOM();
+		moveRuleUp( idx );
+	} );
+
+	// Move down button.
+	$( document ).on( 'click', '.wc-sec-rule-down-btn', function () {
+		var $card = $( this ).closest( '.wc-sec-rule-card' );
+		var idx   = parseInt( $card.data( 'rule-idx' ), 10 );
+		syncAllRulesFromDOM();
+		moveRuleDown( idx );
+	} );
+
+	// Shop field change: show/hide custom key input, auto-update label if pristine.
+	$( document ).on( 'change', '.wc-sec-rule-shopfield', function () {
+		var $card     = $( this ).closest( '.wc-sec-rule-card' );
+		var idx       = parseInt( $card.data( 'rule-idx' ), 10 );
+		var shopField = $( this ).val();
+		var isCustom  = ( 'custom_field' === shopField );
+		var $wrap     = $card.find( '.wc-sec-rule-custom-key-wrap' );
+
+		$wrap.toggleClass( 'hidden', ! isCustom );
+
+		// Init Select2 on the custom-key field the first time it becomes visible.
+		if ( isCustom ) {
+			var $customKey = $card.find( '.wc-sec-rule-custom-key' );
+			// Only init if not already initialised (no select2 data attached).
+			if ( ! $customKey.data( 'select2' ) && ! $customKey.data( 'selectWoo' ) ) {
+				initSelect2ForRule( $customKey );
 			}
-		} else {
-			state.columnMapping[ key ] = state.columnMapping[ key ].filter( function ( v ) {
-				return v !== index;
-			} );
 		}
 
+		// Auto-update label only if it still matches the previous auto-label
+		// (i.e. the user hasn't typed a custom label yet).
+		var rule = state.columnMapping.rules[ idx ];
+		if ( rule ) {
+			var prevAutoLabel = defaultLabelForField( rule.shop_field, rule.custom_key || '' );
+			var currentLabel  = $card.find( '.wc-sec-rule-label' ).val();
+			if ( currentLabel === prevAutoLabel ) {
+				var newLabel = defaultLabelForField( shopField, $card.find( '.wc-sec-rule-custom-key' ).val() || '' );
+				$card.find( '.wc-sec-rule-label' ).val( newLabel );
+				$card.find( '.wc-sec-rule-card__title' ).text( newLabel );
+			}
+			rule.shop_field = shopField;
+			if ( ! isCustom ) {
+				rule.custom_key = null;
+			}
+		}
+		syncRuleFromCard( $card, idx );
 		validateColumnMapping();
 	} );
 
+	// Label input.
+	$( document ).on( 'input', '.wc-sec-rule-label', function () {
+		var $card = $( this ).closest( '.wc-sec-rule-card' );
+		var idx   = parseInt( $card.data( 'rule-idx' ), 10 );
+		var label = $( this ).val();
+		$card.find( '.wc-sec-rule-card__title' ).text( label );
+		if ( state.columnMapping.rules[ idx ] ) {
+			state.columnMapping.rules[ idx ].label = label;
+		}
+	} );
+
+	// Column checkbox change.
+	$( document ).on( 'change', '.wc-sec-rule-column-check', function () {
+		var $card   = $( this ).closest( '.wc-sec-rule-card' );
+		var idx     = parseInt( $card.data( 'rule-idx' ), 10 );
+		$( this ).closest( '.wc-sec-column-toggle' ).toggleClass( 'selected', $( this ).is( ':checked' ) );
+		syncRuleFromCard( $card, idx );
+		validateColumnMapping();
+	} );
+
+	// Select2 custom key change.
+	$( document ).on( 'change', '.wc-sec-rule-custom-key', function () {
+		var $card = $( this ).closest( '.wc-sec-rule-card' );
+		var idx   = parseInt( $card.data( 'rule-idx' ), 10 );
+		var key   = $( this ).val() || '';
+
+		if ( state.columnMapping.rules[ idx ] ) {
+			state.columnMapping.rules[ idx ].custom_key = key || null;
+
+			// Auto-update label if it still looks like an auto-generated one.
+			var rule          = state.columnMapping.rules[ idx ];
+			var prevAutoLabel = defaultLabelForField( 'custom_field', '' );
+			var currentLabel  = $card.find( '.wc-sec-rule-label' ).val();
+			if ( ! currentLabel || currentLabel === prevAutoLabel || currentLabel === rule.label ) {
+				var newLabel = defaultLabelForField( 'custom_field', key );
+				$card.find( '.wc-sec-rule-label' ).val( newLabel );
+				$card.find( '.wc-sec-rule-card__title' ).text( newLabel );
+				rule.label = newLabel;
+			}
+		}
+		validateColumnMapping();
+	} );
+
+	/**
+	 * Sync all rule cards back to state before an operation that re-renders
+	 * (e.g., reorder), so user input isn't lost.
+	 */
+	function syncAllRulesFromDOM() {
+		$( '.wc-sec-rule-card' ).each( function () {
+			var $card = $( this );
+			var idx   = parseInt( $card.data( 'rule-idx' ), 10 );
+			syncRuleFromCard( $card, idx );
+		} );
+	}
+
 	function validateColumnMapping() {
-		var valid = state.columnMapping.sku_columns.length > 0;
+		var rules = state.columnMapping.rules;
+		var valid = rules.length > 0;
+		if ( valid ) {
+			valid = rules.every( function ( rule ) {
+				if ( ! rule.pricelist_columns || rule.pricelist_columns.length === 0 ) {
+					return false;
+				}
+				if ( 'custom_field' === rule.shop_field && ! rule.custom_key ) {
+					return false;
+				}
+				return true;
+			} );
+		}
 		$( '#wc-sec-step3-next' ).prop( 'disabled', ! valid );
 	}
 
 	// Step 3 → 4 (start comparison).
 	$( '#wc-sec-step3-next' ).on( 'click', function () {
-		if ( ! state.columnMapping.sku_columns.length ) {
-			showNotice( escHtml( data.i18n.selectSkuColumn ), 'error' );
+		syncAllRulesFromDOM();
+
+		var rules = state.columnMapping.rules;
+		if ( ! rules.length ) {
+			showNotice( 'Please add at least one mapping rule.', 'error' );
 			return;
 		}
+		var allHaveCols = rules.every( function ( r ) {
+			return r.pricelist_columns && r.pricelist_columns.length > 0;
+		} );
+		if ( ! allHaveCols ) {
+			showNotice( 'Each rule must have at least one pricelist column selected.', 'error' );
+			return;
+		}
+
+		// Persist sheet info into the mapping object.
+		state.columnMapping.header_row  = state.headerRow;
+		state.columnMapping.sheet_index = state.sheetIndex;
+		state.columnMapping.sheet_name  = ( state.sheetNames && state.sheetIndex < state.sheetNames.length )
+			? state.sheetNames[ state.sheetIndex ] : '';
+
 		hideNotice();
 		goToStep( 4 );
 		runComparison();
@@ -679,6 +1070,10 @@
 				renderStats( res.stats );
 				renderCsvLinks( res.csv_pricelist_url, res.csv_shop_url );
 
+				// Render dynamic table headers.
+				renderTableHeaders( 'pricelist', state.columnMapping.rules, false );
+				renderTableHeaders( 'shop', state.columnMapping.rules, false );
+
 				applyFiltersAndRender( 'pricelist' );
 				applyFiltersAndRender( 'shop' );
 			}, 400 );
@@ -706,6 +1101,45 @@
 	function setRunProgress( pct, label ) {
 		$( '#wc-sec-run-progress-fill' ).css( 'width', pct + '%' );
 		$( '#wc-sec-run-progress-label' ).text( label );
+	}
+
+	// =========================================================================
+	// Render: dynamic table headers
+	// =========================================================================
+
+	/**
+	 * Render <th> elements into the empty thead row for a results table.
+	 *
+	 * @param {string}   type     'pricelist' | 'shop'
+	 * @param {Array}    rules    Array of rule objects.
+	 * @param {boolean}  isDetail True when rendering on the history-detail page.
+	 */
+	function renderTableHeaders( type, rules, isDetail ) {
+		var prefix   = isDetail ? '#wc-sec-detail-thead-' : '#wc-sec-thead-';
+		var $tr      = $( prefix + type );
+
+		if ( 'pricelist' === type ) {
+			// Pricelist value columns (one per rule, labelled from pricelist side).
+			$.each( rules, function ( i, rule ) {
+				$tr.append( '<th>' + escHtml( 'Pricelist: ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
+			} );
+			$tr.append( '<th>Status</th>' );
+			$tr.append( '<th>Shop ID</th>' );
+			$tr.append( '<th>Shop Name</th>' );
+			// Shop value columns (one per rule, labelled from shop side).
+			$.each( rules, function ( i, rule ) {
+				$tr.append( '<th>' + escHtml( 'Shop: ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
+			} );
+			$tr.append( '<th>Matched by</th>' );
+		} else {
+			$tr.append( '<th>Shop ID</th>' );
+			$tr.append( '<th>Shop Name</th>' );
+			$.each( rules, function ( i, rule ) {
+				$tr.append( '<th>' + escHtml( rule.label || ( 'Rule ' + ( i + 1 ) ) ) + '</th>' );
+			} );
+			$tr.append( '<th>In Pricelist</th>' );
+			$tr.append( '<th>Matched by</th>' );
+		}
 	}
 
 	// =========================================================================
@@ -800,47 +1234,49 @@
 		applyFiltersAndRender( 'shop' );
 	} );
 
+	/**
+	 * Build a search haystack string from a result row using dynamic rules.
+	 *
+	 * @param {Object}  row
+	 * @param {string}  type   'pricelist' | 'shop'
+	 * @param {Array}   rules
+	 * @return {string}
+	 */
+	function buildHaystack( row, type, rules ) {
+		var parts = [];
+		if ( 'pricelist' === type ) {
+			parts.push( row.shop_name || '' );
+			$.each( rules, function ( i ) {
+				parts.push( row[ 'pricelist_rule_' + i ] || '' );
+				parts.push( row[ 'shop_rule_' + i ] || '' );
+			} );
+		} else {
+			parts.push( row.shop_name || '' );
+			$.each( rules, function ( i ) {
+				parts.push( row[ 'shop_rule_' + i ] || '' );
+			} );
+		}
+		return parts.join( ' ' ).toLowerCase();
+	}
+
 	function applyFiltersAndRender( type ) {
 		var search = ( $( '#wc-sec-filter-search' ).val() || '' ).toLowerCase();
 		var status = $( '#wc-sec-filter-status' ).val() || '';
 		var rows   = state.allRows[ type ] || [];
+		var rules  = state.columnMapping.rules || [];
 
 		var filtered = rows.filter( function ( row ) {
 			// Status filter.
 			if ( status ) {
 				var isFound = 'pricelist' === type ? row.found : row.in_pricelist;
-				if ( 'found' === status && ! isFound ) {
-					return false;
-				}
-				if ( 'not_found' === status && isFound ) {
-					return false;
-				}
+				if ( 'found' === status && ! isFound ) { return false; }
+				if ( 'not_found' === status && isFound ) { return false; }
 			}
-
 			// Search filter.
 			if ( search ) {
-				var haystack = '';
-				if ( 'pricelist' === type ) {
-					haystack = [
-						row.pricelist_name,
-						row.pricelist_sku,
-						row.pricelist_ean,
-						row.shop_name,
-						row.shop_sku,
-						row.shop_ean
-					].join( ' ' ).toLowerCase();
-				} else {
-					haystack = [
-						row.shop_name,
-						row.shop_sku,
-						row.shop_ean
-					].join( ' ' ).toLowerCase();
-				}
-				if ( haystack.indexOf( search ) === -1 ) {
-					return false;
-				}
+				var haystack = buildHaystack( row, type, rules );
+				if ( haystack.indexOf( search ) === -1 ) { return false; }
 			}
-
 			return true;
 		} );
 
@@ -855,16 +1291,17 @@
 		var offset  = ( page - 1 ) * PER_PAGE;
 		var paged   = rows.slice( offset, offset + PER_PAGE );
 		var $tbody  = $( '#wc-sec-tbody-' + type );
+		var rules   = state.columnMapping.rules || [];
 
 		if ( ! paged.length ) {
-			var cols = 'pricelist' === type ? 8 : 5;
+			var cols = 4 + rules.length * 2 + ( 'pricelist' === type ? 1 : 0 );
 			$tbody.html( '<tr><td colspan="' + cols + '">No results found.</td></tr>' );
 			return;
 		}
 
 		var html = '';
 		$.each( paged, function ( i, row ) {
-			html += buildResultRow( row, type );
+			html += buildResultRow( row, type, rules );
 		} );
 		$tbody.html( html );
 	}
@@ -884,34 +1321,61 @@
 		return escHtml( shopName );
 	}
 
-	function buildResultRow( row, type ) {
+	/**
+	 * Build a single <tr> HTML string for either result type.
+	 *
+	 * @param {Object}  row
+	 * @param {string}  type   'pricelist' | 'shop'
+	 * @param {Array}   rules
+	 * @return {string}
+	 */
+	function buildResultRow( row, type, rules ) {
+		var rulesArr = rules || [];
+
 		if ( 'pricelist' === type ) {
 			var statusBadge = row.found
 				? '<span class="wc-sec-badge wc-sec-badge--found">Found</span>'
 				: '<span class="wc-sec-badge wc-sec-badge--not-found">Not found</span>';
 
-			return '<tr class="' + ( row.found ? '' : 'wc-sec-row--unmatched' ) + '">' +
-				'<td>' + escHtml( row.pricelist_name ) + '</td>' +
-				'<td>' + escHtml( row.pricelist_sku ) + '</td>' +
-				'<td>' + escHtml( row.pricelist_ean ) + '</td>' +
-				'<td>' + statusBadge + '</td>' +
-				'<td>' + ( row.shop_id ? escHtml( String( row.shop_id ) ) : '' ) + '</td>' +
-				'<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>' +
-				'<td>' + escHtml( row.shop_sku ) + '</td>' +
-				'<td>' + escHtml( row.shop_ean ) + '</td>' +
-				'</tr>';
+			var matchedRule = ( typeof row.matched_rule_index === 'number' && row.matched_rule_index >= 0 )
+				? escHtml( ( rulesArr[ row.matched_rule_index ] || {} ).label || ( 'Rule ' + ( row.matched_rule_index + 1 ) ) )
+				: '&mdash;';
+
+			var html = '<tr class="' + ( row.found ? '' : 'wc-sec-row--unmatched' ) + '">';
+			// Pricelist value per rule.
+			$.each( rulesArr, function ( i ) {
+				html += '<td>' + escHtml( row[ 'pricelist_rule_' + i ] || '' ) + '</td>';
+			} );
+			html += '<td>' + statusBadge + '</td>';
+			html += '<td>' + ( row.shop_id ? escHtml( String( row.shop_id ) ) : '' ) + '</td>';
+			html += '<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>';
+			// Shop value per rule.
+			$.each( rulesArr, function ( i ) {
+				html += '<td>' + escHtml( row[ 'shop_rule_' + i ] || '' ) + '</td>';
+			} );
+			html += '<td>' + matchedRule + '</td>';
+			html += '</tr>';
+			return html;
+
 		} else {
 			var inPricelist = row.in_pricelist
 				? '<span class="wc-sec-badge wc-sec-badge--in-pricelist">Yes</span>'
 				: '<span class="wc-sec-badge wc-sec-badge--not-in-pricelist">No</span>';
 
-			return '<tr class="' + ( row.in_pricelist ? '' : 'wc-sec-row--unmatched' ) + '">' +
-				'<td>' + escHtml( String( row.shop_id ) ) + '</td>' +
-				'<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>' +
-				'<td>' + escHtml( row.shop_sku ) + '</td>' +
-				'<td>' + escHtml( row.shop_ean ) + '</td>' +
-				'<td>' + inPricelist + '</td>' +
-				'</tr>';
+			var matchedRuleShop = ( typeof row.matched_rule_index === 'number' && row.matched_rule_index >= 0 )
+				? escHtml( ( rulesArr[ row.matched_rule_index ] || {} ).label || ( 'Rule ' + ( row.matched_rule_index + 1 ) ) )
+				: '&mdash;';
+
+			var shopHtml = '<tr class="' + ( row.in_pricelist ? '' : 'wc-sec-row--unmatched' ) + '">';
+			shopHtml += '<td>' + escHtml( String( row.shop_id ) ) + '</td>';
+			shopHtml += '<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>';
+			$.each( rulesArr, function ( i ) {
+				shopHtml += '<td>' + escHtml( row[ 'shop_rule_' + i ] || '' ) + '</td>';
+			} );
+			shopHtml += '<td>' + inPricelist + '</td>';
+			shopHtml += '<td>' + matchedRuleShop + '</td>';
+			shopHtml += '</tr>';
+			return shopHtml;
 		}
 	}
 
@@ -973,7 +1437,7 @@
 		state.headers       = [];
 		state.previewRows   = [];
 		state.brandSlugs    = [];
-		state.columnMapping = { sku_columns: [], ean_columns: [], name_columns: [] };
+		state.columnMapping = { rules: [], header_row: 0, sheet_index: 0, sheet_name: '' };
 		state.comparisonId  = 0;
 		state.allRows       = { pricelist: [], shop: [] };
 		state.filteredRows  = { pricelist: [], shop: [] };
@@ -1037,10 +1501,22 @@
 	if ( $detailId.length ) {
 		var detailComparisonId = parseInt( $detailId.val(), 10 );
 		var detailNonce        = $( '#wc-sec-detail-nonce' ).val();
-		var detailState        = {
+		var detailRulesRaw     = $( '#wc-sec-detail-rules' ).val() || '[]';
+		var detailRules        = [];
+		try {
+			detailRules = JSON.parse( detailRulesRaw );
+		} catch ( e ) {
+			detailRules = [];
+		}
+
+		var detailState = {
 			pricelist: { page: 1, rows: [], filtered: [] },
 			shop:      { page: 1, rows: [], filtered: [] }
 		};
+
+		// Render table headers from stored rules.
+		renderTableHeaders( 'pricelist', detailRules, true );
+		renderTableHeaders( 'shop', detailRules, true );
 
 		// Load both tabs immediately.
 		loadDetailResults( 'pricelist' );
@@ -1062,7 +1538,7 @@
 				}
 
 				// Collect all pages.
-				var allRows  = response.data.rows;
+				var allRows    = response.data.rows;
 				var totalPages = response.data.total_pages;
 
 				if ( totalPages > 1 ) {
@@ -1115,14 +1591,14 @@
 			var $tbody = $( '#wc-sec-detail-tbody-' + type );
 
 			if ( ! paged.length ) {
-				var cols = 'pricelist' === type ? 8 : 5;
+				var cols = 4 + detailRules.length * 2 + ( 'pricelist' === type ? 1 : 0 );
 				$tbody.html( '<tr><td colspan="' + cols + '">No results.</td></tr>' );
 				return;
 			}
 
 			var html = '';
 			$.each( paged, function ( i, row ) {
-				html += buildResultRow( row, type );
+				html += buildResultRow( row, type, detailRules );
 			} );
 			$tbody.html( html );
 		}
@@ -1179,9 +1655,7 @@
 						if ( 'not_found' === status && isFound ) { return false; }
 					}
 					if ( search ) {
-						var h = 'pricelist' === type
-							? [ row.pricelist_name, row.pricelist_sku, row.pricelist_ean, row.shop_name, row.shop_sku, row.shop_ean ].join( ' ' ).toLowerCase()
-							: [ row.shop_name, row.shop_sku, row.shop_ean ].join( ' ' ).toLowerCase();
+						var h = buildHaystack( row, type, detailRules );
 						if ( h.indexOf( search ) === -1 ) { return false; }
 					}
 					return true;

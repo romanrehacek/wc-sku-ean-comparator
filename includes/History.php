@@ -23,9 +23,12 @@ class History {
 	/**
 	 * Database table version.
 	 *
+	 * Bump this when the column_mapping JSON schema changes so that
+	 * maybe_upgrade_db() can drop + recreate the table with fresh data.
+	 *
 	 * @var string
 	 */
-	const DB_VERSION = '1.0';
+	const DB_VERSION = '1.1';
 
 	/**
 	 * Get the full table name including prefix.
@@ -80,6 +83,27 @@ class History {
 		$table_name = self::get_table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * Check installed DB version and run upgrade if needed.
+	 *
+	 * When the schema version bumps (e.g. column_mapping format changes), this
+	 * drops the old table and recreates it so there are no stale records with
+	 * an incompatible JSON structure.
+	 *
+	 * Hook: plugins_loaded
+	 *
+	 * @return void
+	 */
+	public static function maybe_upgrade_db(): void {
+		$installed = get_option( 'wc_sec_db_version', '0' );
+
+		if ( version_compare( $installed, self::DB_VERSION, '<' ) ) {
+			// Drop the old table — we are in dev mode, backward compat not required.
+			self::drop_table();
+			self::create_table();
+		}
 	}
 
 	/**
@@ -231,12 +255,18 @@ class History {
 			$update['stats'] = wp_json_encode( $data['stats'] );
 			$formats[]       = '%s';
 		}
-		if ( isset( $data['csv_pricelist_to_shop'] ) ) {
-			$update['csv_pricelist_to_shop'] = sanitize_text_field( $data['csv_pricelist_to_shop'] );
+		// Use array_key_exists (not isset) so that explicit null values can clear
+		// a stored CSV filename (e.g. when a re-run fails to write the file).
+		if ( array_key_exists( 'csv_pricelist_to_shop', $data ) ) {
+			$update['csv_pricelist_to_shop'] = is_null( $data['csv_pricelist_to_shop'] )
+				? null
+				: sanitize_text_field( $data['csv_pricelist_to_shop'] );
 			$formats[]                       = '%s';
 		}
-		if ( isset( $data['csv_shop_to_pricelist'] ) ) {
-			$update['csv_shop_to_pricelist'] = sanitize_text_field( $data['csv_shop_to_pricelist'] );
+		if ( array_key_exists( 'csv_shop_to_pricelist', $data ) ) {
+			$update['csv_shop_to_pricelist'] = is_null( $data['csv_shop_to_pricelist'] )
+				? null
+				: sanitize_text_field( $data['csv_shop_to_pricelist'] );
 			$formats[]                       = '%s';
 		}
 		if ( isset( $data['results_summary'] ) ) {

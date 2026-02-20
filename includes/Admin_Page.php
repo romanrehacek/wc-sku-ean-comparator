@@ -86,11 +86,29 @@ class Admin_Page {
 			WC_SEC_VERSION
 		);
 
+		// Ensure selectWoo (WooCommerce's Select2 fork) is available on this page.
+		// WooCommerce only registers it on WC-specific pages, so we force-register
+		// it here if it isn't already registered.
+		if ( ! wp_script_is( 'selectWoo', 'registered' ) ) {
+			$select_woo_path = WP_PLUGIN_DIR . '/woocommerce/assets/js/selectWoo/selectWoo.full.min.js';
+			if ( file_exists( $select_woo_path ) ) {
+				wp_register_script(
+					'selectWoo',
+					plugins_url( 'woocommerce/assets/js/selectWoo/selectWoo.full.min.js', WP_PLUGIN_DIR ),
+					array( 'jquery' ),
+					'1.0.10',
+					true
+				);
+			}
+		}
+		$select_woo_dep = wp_script_is( 'selectWoo', 'registered' ) ? 'selectWoo' : null;
+
 		// Main script -- depends on jQuery (available in WP admin).
+		// selectWoo is WooCommerce's Select2 fork; used for the custom meta key picker.
 		wp_enqueue_script(
 			'wc-sec-admin',
 			WC_SEC_PLUGIN_URL . 'assets/js/admin.js',
-			array( 'jquery', 'jquery-ui-sortable', 'wp-util' ),
+			array_filter( array( 'jquery', $select_woo_dep ) ),
 			WC_SEC_VERSION,
 			true
 		);

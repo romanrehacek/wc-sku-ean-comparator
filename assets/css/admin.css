@@ -721,6 +721,185 @@
 }
 
 /* ==========================================================================
+   Rules builder (Step 3)
+   ========================================================================== */
+
+/* "Add Rule" button spacing */
+.wc-sec-add-rule-btn {
+	margin-top: 12px;
+}
+
+/* Individual rule card */
+.wc-sec-rule-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	padding: 0;
+	margin-bottom: 12px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Card header bar */
+.wc-sec-rule-card__header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #c3c4c7;
+	border-radius: 3px 3px 0 0;
+}
+
+.wc-sec-rule-card__num {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	background: #2271b1;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+.wc-sec-rule-card__title {
+	flex: 1;
+	font-weight: 600;
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Order buttons (up / down arrows) */
+.wc-sec-rule-order-btns {
+	display: flex;
+	gap: 4px;
+	margin-left: auto;
+}
+
+.wc-sec-rule-order-btns .button {
+	min-width: 28px;
+	padding: 0 6px;
+	line-height: 24px;
+	height: 26px;
+	font-size: 11px;
+}
+
+/* Remove button */
+.wc-sec-rule-remove-btn {
+	color: #d63638 !important;
+	border-color: #d63638 !important;
+	min-width: 28px;
+	padding: 0 6px;
+	line-height: 24px;
+	height: 26px;
+	font-size: 11px;
+}
+
+.wc-sec-rule-remove-btn:hover {
+	background: #d63638 !important;
+	color: #fff !important;
+}
+
+/* Card body */
+.wc-sec-rule-card__body {
+	padding: 14px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+/* Field rows inside the card body */
+.wc-sec-rule-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.wc-sec-rule-field-label {
+	min-width: 120px;
+	font-weight: 600;
+	font-size: 13px;
+	padding-top: 4px;
+	flex-shrink: 0;
+}
+
+.wc-sec-rule-card__body select,
+.wc-sec-rule-card__body input[type="text"] {
+	flex: 1;
+	max-width: 340px;
+}
+
+/* Custom key wrap (hidden unless custom_field selected) */
+.wc-sec-rule-custom-key-wrap {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.wc-sec-rule-custom-key-wrap.hidden {
+	display: none !important;
+}
+
+/* Select2 overrides inside rule cards */
+.wc-sec-rule-card .select2-container {
+	flex: 1;
+	max-width: 340px;
+}
+
+.wc-sec-rule-card .select2-container .select2-selection--single {
+	height: 30px;
+	border-color: #8c8f94;
+	border-radius: 3px;
+}
+
+.wc-sec-rule-card .select2-container .select2-selection--single .select2-selection__rendered {
+	line-height: 28px;
+	color: #1d2327;
+}
+
+.wc-sec-rule-card .select2-container .select2-selection--single .select2-selection__arrow {
+	height: 28px;
+}
+
+/* Column selector inside rule card */
+.wc-sec-rule-columns-wrap {
+	flex: 1;
+}
+
+/* ==========================================================================
+   Rules summary table (history-detail page)
+   ========================================================================== */
+
+.wc-sec-rules-summary-table {
+	border-collapse: collapse;
+	font-size: 13px;
+	width: 100%;
+	max-width: 700px;
+}
+
+.wc-sec-rules-summary-table th,
+.wc-sec-rules-summary-table td {
+	padding: 6px 10px;
+	text-align: left;
+	border: 1px solid #c3c4c7;
+}
+
+.wc-sec-rules-summary-table thead th {
+	background: #f6f7f7;
+	font-weight: 600;
+}
+
+.wc-sec-rules-summary-table tbody tr:nth-child(even) {
+	background: #f9fafb;
+}
+
+/* ==========================================================================
    Utility
    ========================================================================== */
 
