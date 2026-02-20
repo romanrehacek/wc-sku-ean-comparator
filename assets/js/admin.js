@@ -32,7 +32,9 @@
 		currentTab: 'pricelist',
 		currentPage: { pricelist: 1, shop: 1 },
 		allRows: { pricelist: [], shop: [] },
-		filteredRows: { pricelist: [], shop: [] }
+		filteredRows: { pricelist: [], shop: [] },
+		metaKeys: [],          // All product meta keys, loaded once on Step 3 entry.
+		metaKeysLoaded: false  // True once the AJAX call has completed.
 	};
 
 	var PER_PAGE = 100;
@@ -495,6 +497,7 @@
 		hideNotice();
 		goToStep( 3 );
 		loadColumns();
+		loadMetaKeys(); // Pre-load meta keys for the custom-field picker.
 	} );
 
 	// Step back buttons.
@@ -544,6 +547,62 @@
 			$( '#wc-sec-mapping-wrap' ).removeClass( 'hidden' );
 		} ).fail( function () {
 			showNotice( escHtml( data.i18n.error ), 'error' );
+		} );
+	}
+
+	/**
+	 * Load all product meta keys from the server once and store in state.metaKeys.
+	 * Called when Step 3 is entered. If already loaded, does nothing.
+	 * After loading, repopulates any visible custom-key <select> elements.
+	 */
+	function loadMetaKeys() {
+		if ( state.metaKeysLoaded ) {
+			return;
+		}
+		$.post( data.ajaxUrl, {
+			action: 'wc_sec_get_meta_keys',
+			nonce:  data.nonce,
+			search: ''
+		} ).done( function ( response ) {
+			if ( response.success && Array.isArray( response.data ) ) {
+				state.metaKeys       = response.data; // [{id, text}, ...]
+				state.metaKeysLoaded = true;
+				// Repopulate any custom-key selects that are already rendered.
+				repopulateCustomKeySelects();
+			}
+		} );
+	}
+
+	/**
+	 * Fill every .wc-sec-rule-custom-key <select> with options from state.metaKeys.
+	 * Preserves the currently selected value. Called once after meta keys load.
+	 */
+	function repopulateCustomKeySelects() {
+		$( '.wc-sec-rule-custom-key' ).each( function () {
+			var $select     = $( this );
+			var fn          = $.fn.selectWoo || $.fn.select2;
+			var currentVal  = $select.val() || '';
+
+			// Destroy existing instance before touching the DOM.
+			if ( fn ) {
+				try { fn.call( $select, 'destroy' ); } catch ( e ) {}
+			}
+
+			// Rebuild options.
+			$select.empty();
+			$select.append( '<option value=""></option>' );
+			$.each( state.metaKeys, function ( i, item ) {
+				var selected = ( item.id === currentVal ) ? ' selected' : '';
+				$select.append(
+					'<option value="' + escHtml( item.id ) + '"' + selected + '>' +
+					escHtml( item.text ) + '</option>'
+				);
+			} );
+
+			// Re-init selectWoo only if the wrapper is visible.
+			if ( fn && $select.closest( '.wc-sec-rule-custom-key-wrap' ).not( '.hidden' ).length ) {
+				fn.call( $select, { width: '100%', allowClear: true, placeholder: '' } );
+			}
 		} );
 	}
 
@@ -688,9 +747,20 @@
 					'<div class="wc-sec-rule-custom-key-wrap' + ( isCustom ? '' : ' hidden' ) + '">' +
 						'<label class="wc-sec-rule-field-label">Meta key</label>' +
 						'<select class="wc-sec-rule-custom-key" style="min-width:220px;">' +
-							( customKey
-								? '<option value="' + escHtml( customKey ) + '" selected>' + escHtml( customKey ) + '</option>'
-								: '' ) +
+							( function () {
+								var opts = '<option value=""></option>';
+								if ( state.metaKeysLoaded ) {
+									$.each( state.metaKeys, function ( i, item ) {
+										var sel = ( item.id === customKey ) ? ' selected' : '';
+										opts += '<option value="' + escHtml( item.id ) + '"' + sel + '>' +
+											escHtml( item.text ) + '</option>';
+									} );
+								} else if ( customKey ) {
+									opts += '<option value="' + escHtml( customKey ) + '" selected>' +
+										escHtml( customKey ) + '</option>';
+								}
+								return opts;
+							}() ) +
 						'</select>' +
 					'</div>' +
 					'<div class="wc-sec-rule-row">' +
@@ -708,12 +778,8 @@
 	}
 
 	/**
-	 * Initialise Select2 AJAX on the custom-key <select> inside a rule card.
-	 *
-	 * @param {jQuery} $select The .wc-sec-rule-custom-key element.
-	 */
-	/**
-	 * Initialise selectWoo / Select2 AJAX on the custom-key <select> inside a rule card.
+	 * Initialise selectWoo / Select2 on the custom-key <select> inside a rule card.
+	 * Options are pre-populated from state.metaKeys — no AJAX needed here.
 	 * Must be called after the element is visible in the DOM.
 	 *
 	 * @param {jQuery} $select The .wc-sec-rule-custom-key element.
@@ -725,50 +791,15 @@
 			return;
 		}
 
-		// Destroy any previous instance to avoid double-init on re-render.
-		// Use the same fn that was (or will be) used to initialise.
+		// Destroy any previous instance to avoid double-init.
 		try { fn.call( $select, 'destroy' ); } catch ( e ) {}
 
-		var ajaxConfig = {
-			url: data.ajaxUrl,
-			type: 'POST',
-			dataType: 'json',
-			delay: 250,
-			data: function ( params ) {
-				return {
-					action: 'wc_sec_get_meta_keys',
-					nonce: data.nonce,
-					search: params.term || ''
-				};
-			},
-			processResults: function ( response ) {
-				// PHP sends wp_send_json_success( $results ) so response.data
-				// is the flat results array (Select2 {id, text} format).
-				if ( response.success && Array.isArray( response.data ) ) {
-					return { results: response.data };
-				}
-				return { results: [] };
-			},
-			cache: false
-		};
-
+		// Options are already in the <select> DOM (from state.metaKeys).
+		// selectWoo provides local search/filter automatically.
 		fn.call( $select, {
 			width: '100%',
-			placeholder: 'Type to search meta key...',
 			allowClear: true,
-			minimumInputLength: 0,
-			ajax: ajaxConfig
-		} );
-
-		// selectWoo/Select2 with minimumInputLength:0 + ajax does NOT auto-fetch
-		// on open — trigger a search with empty term when the dropdown opens.
-		// Both selectWoo and vanilla select2 fire the 'select2:open' event.
-		$select.on( 'select2:open', function () {
-			setTimeout( function () {
-				// Both libraries use the .select2-search__field CSS class.
-				var $search = $( '.select2-search__field:visible' ).last();
-				$search.trigger( 'input' );
-			}, 0 );
+			placeholder: 'Select or type a meta key...'
 		} );
 	}
 

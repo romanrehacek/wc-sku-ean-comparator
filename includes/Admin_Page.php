@@ -86,15 +86,29 @@ class Admin_Page {
 			WC_SEC_VERSION
 		);
 
+		// Enqueue WooCommerce's select2 CSS so the enhanced select renders correctly.
+		// WC only loads this on its own pages; we need it for our custom-field meta key picker.
+		$wc_plugin_dir = WP_PLUGIN_DIR . '/woocommerce';
+		$wc_plugin_url = WP_PLUGIN_URL . '/woocommerce';
+		$select2_css   = $wc_plugin_dir . '/assets/css/select2.css';
+		if ( file_exists( $select2_css ) ) {
+			wp_enqueue_style(
+				'wc-sec-select2',
+				$wc_plugin_url . '/assets/css/select2.css',
+				array(),
+				defined( 'WC_VERSION' ) ? WC_VERSION : '1.0'
+			);
+		}
+
 		// Ensure selectWoo (WooCommerce's Select2 fork) is available on this page.
 		// WooCommerce only registers it on WC-specific pages, so we force-register
 		// it here if it isn't already registered.
 		if ( ! wp_script_is( 'selectWoo', 'registered' ) ) {
-			$select_woo_path = WP_PLUGIN_DIR . '/woocommerce/assets/js/selectWoo/selectWoo.full.min.js';
+			$select_woo_path = $wc_plugin_dir . '/assets/js/selectWoo/selectWoo.full.min.js';
 			if ( file_exists( $select_woo_path ) ) {
 				wp_register_script(
 					'selectWoo',
-					plugins_url( 'woocommerce/assets/js/selectWoo/selectWoo.full.min.js', WP_PLUGIN_DIR ),
+					$wc_plugin_url . '/assets/js/selectWoo/selectWoo.full.min.js',
 					array( 'jquery' ),
 					'1.0.10',
 					true
