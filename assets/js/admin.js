@@ -125,6 +125,14 @@
 			$( this ).addClass( 'active' );
 			$( '#wc-sec-tab-' + tab ).addClass( 'active' );
 
+			// Reset file/sheet selection state when switching tabs.
+			state.filename   = '';
+			state.sheetIndex = 0;
+			state.sheetNames = [];
+			$( '#wc-sec-sheet-selection' ).addClass( 'hidden' );
+			$( '#wc-sec-sheet-select' ).empty();
+			$( '#wc-sec-step1-next' ).prop( 'disabled', true );
+
 			if ( 'existing' === tab ) {
 				loadFileList();
 			}
@@ -342,12 +350,23 @@
 
 	function showSheetSelector( sheetNames ) {
 		var $select = $( '#wc-sec-sheet-select' ).empty();
-		$select.append( '<option value="">-- Select a sheet --</option>' );
-		$.each( sheetNames, function ( idx, name ) {
-			$select.append( '<option value="' + idx + '">' + escHtml( name ) + '</option>' );
-		} );
-		$( '#wc-sec-sheet-selection' ).removeClass( 'hidden' );
-		$( '#wc-sec-step1-next' ).prop( 'disabled', true );
+
+		if ( 1 === sheetNames.length ) {
+			// Only one sheet — pre-select it automatically, no user action needed.
+			$select.append( '<option value="0">' + escHtml( sheetNames[ 0 ] ) + '</option>' );
+			$select.val( '0' );
+			state.sheetIndex = 0;
+			$( '#wc-sec-sheet-selection' ).addClass( 'hidden' );
+			$( '#wc-sec-step1-next' ).prop( 'disabled', false );
+		} else {
+			// Multiple sheets — require explicit selection.
+			$select.append( '<option value="">-- Select a sheet --</option>' );
+			$.each( sheetNames, function ( idx, name ) {
+				$select.append( '<option value="' + idx + '">' + escHtml( name ) + '</option>' );
+			} );
+			$( '#wc-sec-sheet-selection' ).removeClass( 'hidden' );
+			$( '#wc-sec-step1-next' ).prop( 'disabled', true );
+		}
 	}
 
 	// Sheet selection change.
