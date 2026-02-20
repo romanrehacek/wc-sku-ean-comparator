@@ -690,6 +690,7 @@
 .wc-sec-detail-stats .wc-sec-stat-numbers {
 	justify-content: space-between;
 	gap: 8px;
+	margin: 0 0 10px;
 }
 
 .wc-sec-stat-item {
