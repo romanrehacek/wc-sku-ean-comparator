@@ -96,7 +96,8 @@ class Ajax_Handler {
 	/**
 	 * Handle file upload (wp_ajax_wc_sec_upload_file).
 	 *
-	 * Expects: $_FILES['file'], $_POST['overwrite'] (optional, '1' = overwrite).
+	 * Expects: $_FILES['file']. If a file with the same name already exists it
+	 * is automatically renamed with a numeric suffix (-1, -2, …).
 	 *
 	 * @return void
 	 */
@@ -107,17 +108,11 @@ class Ajax_Handler {
 			wp_send_json_error( array( 'message' => __( 'No file provided.', 'wc-sku-ean-comparator' ) ) );
 		}
 
-		$overwrite = ! empty( $_POST['overwrite'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['overwrite'] ) );
-
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- handled inside handle_upload()
-		$result = $this->file_handler->handle_upload( $_FILES['file'], $overwrite );
+		$result = $this->file_handler->handle_upload( $_FILES['file'] );
 
 		if ( is_wp_error( $result ) ) {
-			$extra = array( 'message' => $result->get_error_message() );
-			if ( 'wc_sec_file_exists' === $result->get_error_code() ) {
-				$extra['exists'] = true;
-			}
-			wp_send_json_error( $extra );
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}
 
 		$filename  = $result;

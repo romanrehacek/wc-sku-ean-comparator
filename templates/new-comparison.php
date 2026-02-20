@@ -31,33 +31,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- Upload tab -->
 		<div class="wc-sec-tab-content active" id="wc-sec-tab-upload">
-			<table class="form-table">
-				<tr>
-					<th scope="row"><label for="wc-sec-file-input"><?php esc_html_e( 'Price list file', 'wc-sku-ean-comparator' ); ?></label></th>
-					<td>
-						<input type="file" id="wc-sec-file-input" name="file" accept=".csv,.xls,.xlsx" />
-						<p class="description">
-							<?php esc_html_e( 'Supported formats: CSV, XLS, XLSX. Maximum size: 20 MB.', 'wc-sku-ean-comparator' ); ?>
-						</p>
-					</td>
-				</tr>
-				<tr id="wc-sec-overwrite-row" class="hidden">
-					<th scope="row"><?php esc_html_e( 'File exists', 'wc-sku-ean-comparator' ); ?></th>
-					<td>
-						<label>
-							<input type="checkbox" id="wc-sec-overwrite" value="1" />
-							<?php esc_html_e( 'Overwrite existing file with the same name', 'wc-sku-ean-comparator' ); ?>
-						</label>
-					</td>
-				</tr>
-			</table>
-			<div id="wc-sec-upload-progress" class="wc-sec-progress hidden">
-				<div class="wc-sec-progress__bar"><div class="wc-sec-progress__fill" style="width:0%"></div></div>
-				<span class="wc-sec-progress__label"><?php esc_html_e( 'Uploading...', 'wc-sku-ean-comparator' ); ?></span>
+
+			<!-- Drop zone -->
+			<div class="wc-sec-dropzone" id="wc-sec-dropzone" tabindex="0" role="button"
+				aria-label="<?php esc_attr_e( 'Upload price list file. Click or drag a file here.', 'wc-sku-ean-comparator' ); ?>">
+				<input type="file" id="wc-sec-file-input" name="file" accept=".csv,.xls,.xlsx" class="wc-sec-dropzone__input" />
+				<div class="wc-sec-dropzone__body">
+					<span class="wc-sec-dropzone__icon dashicons dashicons-upload"></span>
+					<p class="wc-sec-dropzone__label">
+						<?php esc_html_e( 'Drag &amp; drop a file here, or click to browse', 'wc-sku-ean-comparator' ); ?>
+					</p>
+					<p class="wc-sec-dropzone__hint description">
+						<?php esc_html_e( 'Supported: CSV, XLS, XLSX &mdash; max 20 MB', 'wc-sku-ean-comparator' ); ?>
+					</p>
+				</div>
+			<!-- Uploading state (shown during AJAX) -->
+			<div class="wc-sec-dropzone__uploading hidden">
+				<div class="wc-sec-progress__bar">
+					<div class="wc-sec-progress__fill" id="wc-sec-upload-progress-fill" style="width:0%"></div>
+				</div>
+				<span class="wc-sec-progress__label" id="wc-sec-upload-progress-label">
+					<?php esc_html_e( 'Uploading...', 'wc-sku-ean-comparator' ); ?>
+				</span>
 			</div>
-			<button type="button" class="button button-primary" id="wc-sec-upload-btn">
-				<?php esc_html_e( 'Upload File', 'wc-sku-ean-comparator' ); ?>
-			</button>
+			<!-- Success state (shown after upload) -->
+			<div class="wc-sec-dropzone__success hidden" id="wc-sec-upload-success">
+				<p class="wc-sec-dropzone__label">
+					<?php esc_html_e( 'Drag &amp; drop a file here, or click to browse', 'wc-sku-ean-comparator' ); ?>
+				</p>
+				<p class="wc-sec-dropzone__hint description">
+					<?php esc_html_e( 'Supported: CSV, XLS, XLSX &mdash; max 20 MB', 'wc-sku-ean-comparator' ); ?>
+				</p>
+				<p class="wc-sec-dropzone__success-filename" id="wc-sec-upload-success-filename"></p>
+			</div>
+
+		</div><!-- /dropzone -->
+
 		</div>
 
 		<!-- Existing files tab -->

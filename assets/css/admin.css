@@ -8,6 +8,121 @@
    Layout & Wrap
    ========================================================================== */
 
+/* ==========================================================================
+   Drop Zone (Step 1 upload tab)
+   ========================================================================== */
+
+.wc-sec-dropzone {
+	position: relative;
+	border: 2px dashed #c3c4c7;
+	border-radius: 4px;
+	background: #f6f7f7;
+	cursor: pointer;
+	text-align: center;
+	padding: 40px 24px;
+	transition: border-color 0.15s, background 0.15s;
+	outline: none;
+}
+
+.wc-sec-dropzone:hover,
+.wc-sec-dropzone:focus {
+	border-color: #2271b1;
+	background: #f0f6fc;
+}
+
+/* Drag-over highlight */
+.wc-sec-dropzone--over {
+	border-color: #2271b1;
+	background: #e8f4fd;
+}
+
+/* Uploading state */
+.wc-sec-dropzone--uploading {
+	cursor: default;
+	border-color: #72aee6;
+	background: #f0f6fc;
+}
+
+/* Hidden native file input covers the drop zone for click-to-browse */
+.wc-sec-dropzone__input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	cursor: pointer;
+	font-size: 0;
+	z-index: 0;
+	pointer-events: none; /* JS click handler opens picker instead */
+}
+
+/* Raise interactive children above the invisible input */
+.wc-sec-dropzone__body,
+.wc-sec-dropzone__uploading,
+.wc-sec-dropzone__success {
+	position: relative;
+	z-index: 1;
+}
+
+.wc-sec-dropzone__body {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.wc-sec-dropzone__icon {
+	display: block;
+	width: 36px;
+	height: 36px;
+	font-size: 36px;
+	line-height: 1;
+	color: #8c8f94;
+	margin-bottom: 12px;
+}
+
+.wc-sec-dropzone__icon::before {
+	font-size: 36px;
+	width: 36px;
+	height: 36px;
+	line-height: 1;
+}
+
+.wc-sec-dropzone--over .wc-sec-dropzone__icon,
+.wc-sec-dropzone:hover .wc-sec-dropzone__icon {
+	color: #2271b1;
+}
+
+
+.wc-sec-dropzone__label {
+	font-size: 14px;
+	font-weight: 500;
+	color: #1d2327;
+	margin: 0 0 6px;
+}
+
+.wc-sec-dropzone__hint {
+	margin: 0;
+}
+
+/* Uploaded filename shown in success state */
+.wc-sec-dropzone__success-filename {
+	margin: 8px 0 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: #00a32a;
+	word-break: break-all;
+}
+
+/* Progress inside the drop zone */
+.wc-sec-dropzone__uploading .wc-sec-progress__bar {
+	max-width: 360px;
+	margin: 0 auto 8px;
+}
+
+.wc-sec-dropzone__uploading .wc-sec-progress__label {
+	display: block;
+}
+
 .wc-sec-wrap {
 	/* Remove the default .wrap top-margin so our header starts flush */
 	margin-top: 0;

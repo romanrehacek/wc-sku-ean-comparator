@@ -147,6 +147,7 @@ class Admin_Page {
 					'confirmDelete'      => __( 'Are you sure you want to delete this item? This action cannot be undone.', 'wc-sku-ean-comparator' ),
 					'confirmDeleteFile'  => __( 'Are you sure you want to delete this file?', 'wc-sku-ean-comparator' ),
 					'processing'         => __( 'Processing...', 'wc-sku-ean-comparator' ),
+					'uploading'          => __( 'Uploading...', 'wc-sku-ean-comparator' ),
 					'loadingProducts'    => __( 'Loading products from shop...', 'wc-sku-ean-comparator' ),
 					'comparing'         => __( 'Comparing...', 'wc-sku-ean-comparator' ),
 					'done'              => __( 'Done!', 'wc-sku-ean-comparator' ),

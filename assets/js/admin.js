@@ -254,26 +254,66 @@
 		} );
 	} );
 
-	// Upload new file button.
-	$( '#wc-sec-upload-btn' ).on( 'click', function () {
-		var fileInput = $( '#wc-sec-file-input' )[ 0 ];
-		if ( ! fileInput.files.length ) {
-			showNotice( escHtml( data.i18n.selectFile ), 'error' );
-			return;
-		}
+	// =========================================================================
+	// Drop zone (Step 1 upload tab)
+	// =========================================================================
 
-		var file      = fileInput.files[ 0 ];
-		var overwrite = $( '#wc-sec-overwrite' ).is( ':checked' ) ? '1' : '0';
-		var formData  = new FormData();
+	/**
+	 * Set drop zone to its idle / ready state.
+	 */
+	function dropzoneReset() {
+		var $dz = $( '#wc-sec-dropzone' );
+		$dz.removeClass( 'wc-sec-dropzone--uploading wc-sec-dropzone--over wc-sec-dropzone--error wc-sec-dropzone--success' );
+		$dz.find( '.wc-sec-dropzone__uploading' ).addClass( 'hidden' );
+		$dz.find( '.wc-sec-dropzone__success' ).addClass( 'hidden' );
+		$dz.find( '.wc-sec-dropzone__body' ).removeClass( 'hidden' );
+		setDropzoneProgress( 0, '' );
+	}
+
+	/**
+	 * Show the success state with the uploaded filename.
+	 *
+	 * @param {string} filename The server-side filename.
+	 */
+	function dropzoneShowSuccess( filename ) {
+		var $dz = $( '#wc-sec-dropzone' );
+		$dz.removeClass( 'wc-sec-dropzone--uploading wc-sec-dropzone--over wc-sec-dropzone--error' );
+		$dz.addClass( 'wc-sec-dropzone--success' );
+		$dz.find( '.wc-sec-dropzone__uploading' ).addClass( 'hidden' );
+		$dz.find( '.wc-sec-dropzone__body' ).addClass( 'hidden' );
+		$( '#wc-sec-upload-success-filename' ).text( filename );
+		$dz.find( '.wc-sec-dropzone__success' ).removeClass( 'hidden' );
+	}
+
+	/**
+	 * Update the upload progress bar inside the drop zone.
+	 *
+	 * @param {number} pct   0-100
+	 * @param {string} label Status text.
+	 */
+	function setDropzoneProgress( pct, label ) {
+		$( '#wc-sec-upload-progress-fill' ).css( 'width', pct + '%' );
+		$( '#wc-sec-upload-progress-label' ).text( label );
+	}
+
+	/**
+	 * Start uploading a File object. Server auto-renames on conflict.
+	 *
+	 * @param {File} file The File to upload.
+	 */
+	function startUpload( file ) {
+		var $dz = $( '#wc-sec-dropzone' );
+
+		hideNotice();
+		$dz.find( '.wc-sec-dropzone__body' ).addClass( 'hidden' );
+		$dz.find( '.wc-sec-dropzone__uploading' ).removeClass( 'hidden' );
+		$dz.addClass( 'wc-sec-dropzone--uploading' );
+		setDropzoneProgress( 5, data.i18n.uploading || 'Uploading\u2026' );
+
+		var formData = new FormData();
 		formData.append( 'action', 'wc_sec_upload_file' );
 		formData.append( 'nonce', data.nonce );
 		formData.append( 'file', file );
-		formData.append( 'overwrite', overwrite );
-
-		hideNotice();
-		$( '#wc-sec-upload-progress' ).removeClass( 'hidden' );
-		$( '#wc-sec-upload-btn' ).prop( 'disabled', true );
-		setUploadProgress( 10 );
 
 		$.ajax( {
 			url: data.ajaxUrl,
@@ -286,39 +326,97 @@
 				xhr.upload.addEventListener( 'progress', function ( evt ) {
 					if ( evt.lengthComputable ) {
 						var pct = Math.round( ( evt.loaded / evt.total ) * 90 );
-						setUploadProgress( pct );
+						setDropzoneProgress( pct, data.i18n.uploading || 'Uploading\u2026' );
 					}
 				}, false );
 				return xhr;
 			}
 		} ).done( function ( response ) {
-			setUploadProgress( 100 );
-			$( '#wc-sec-upload-progress' ).addClass( 'hidden' );
-			$( '#wc-sec-upload-btn' ).prop( 'disabled', false );
-
 			if ( ! response.success ) {
-				// Check for overwrite conflict.
-				if ( response.data && response.data.exists ) {
-					$( '#wc-sec-overwrite-row' ).removeClass( 'hidden' );
-				}
+				dropzoneReset();
 				showNotice( escHtml( response.data.message ), 'error' );
 				return;
 			}
 
-			var filename  = response.data.filename;
-			var ext       = filename.split( '.' ).pop().toLowerCase();
+			setDropzoneProgress( 100, data.i18n.done || 'Done!' );
+			var filename   = response.data.filename;
+			var ext        = filename.split( '.' ).pop().toLowerCase();
 			var sheetNames = response.data.sheet_names || [];
-			selectFile( filename, ext, sheetNames );
+
+			// Brief pause so the user sees 100% before we advance.
+			setTimeout( function () {
+				dropzoneShowSuccess( filename );
+				selectFile( filename, ext, sheetNames );
+			}, 300 );
 		} ).fail( function () {
-			$( '#wc-sec-upload-progress' ).addClass( 'hidden' );
-			$( '#wc-sec-upload-btn' ).prop( 'disabled', false );
+			dropzoneReset();
 			showNotice( escHtml( data.i18n.error ), 'error' );
 		} );
+	}
+
+	// Click anywhere in the drop zone → open native file picker.
+	// We call the native DOM .click() directly to avoid the event
+	// bubbling back up to the dropzone handler and causing recursion.
+	$( document ).on( 'click', '#wc-sec-dropzone', function ( e ) {
+		// Don't open picker if click originated from the file input itself
+		// (its click event bubbles up here too).
+		if ( $( e.target ).is( '#wc-sec-file-input' ) ) {
+			return;
+		}
+		// Don't open while uploading.
+		if ( $( this ).hasClass( 'wc-sec-dropzone--uploading' ) ) {
+			return;
+		}
+		var input = document.getElementById( 'wc-sec-file-input' );
+		if ( input ) {
+			input.click();
+		}
 	} );
 
-	function setUploadProgress( pct ) {
-		$( '#wc-sec-upload-progress .wc-sec-progress__fill' ).css( 'width', pct + '%' );
-	}
+	// Keyboard: Enter / Space on the drop zone.
+	$( document ).on( 'keydown', '#wc-sec-dropzone', function ( e ) {
+		if ( e.which === 13 || e.which === 32 ) {
+			e.preventDefault();
+			var input = document.getElementById( 'wc-sec-file-input' );
+			if ( input ) {
+				input.click();
+			}
+		}
+	} );
+
+	// File chosen via browser picker → auto-upload.
+	$( document ).on( 'change', '#wc-sec-file-input', function () {
+		var files = this.files;
+		if ( ! files || ! files.length ) {
+			return;
+		}
+		var file = files[ 0 ];
+		// Reset so the same file can be chosen again after an error.
+		$( this ).val( '' );
+		startUpload( file );
+	} );
+
+	// Drag-over: highlight drop zone.
+	$( document ).on( 'dragover dragenter', '#wc-sec-dropzone', function ( e ) {
+		e.preventDefault();
+		e.stopPropagation();
+		$( this ).addClass( 'wc-sec-dropzone--over' );
+	} );
+
+	$( document ).on( 'dragleave drop', '#wc-sec-dropzone', function ( e ) {
+		e.preventDefault();
+		e.stopPropagation();
+		$( this ).removeClass( 'wc-sec-dropzone--over' );
+	} );
+
+	// Drop: extract file and auto-upload.
+	$( document ).on( 'drop', '#wc-sec-dropzone', function ( e ) {
+		var files = e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files;
+		if ( ! files || ! files.length ) {
+			return;
+		}
+		startUpload( files[ 0 ] );
+	} );
 
 	/**
 	 * Mark a file as selected and optionally show sheet selector.
@@ -396,12 +494,6 @@
 		} else {
 			$( '#wc-sec-step1-next' ).prop( 'disabled', true );
 		}
-	} );
-
-	// File input change: reset overwrite checkbox visibility.
-	$( '#wc-sec-file-input' ).on( 'change', function () {
-		$( '#wc-sec-overwrite-row' ).addClass( 'hidden' );
-		$( '#wc-sec-overwrite' ).prop( 'checked', false );
 	} );
 
 	// Step 1 → 2.
@@ -1484,8 +1576,7 @@
 
 		// Reset UI.
 		$( '#wc-sec-file-input' ).val( '' );
-		$( '#wc-sec-overwrite' ).prop( 'checked', false );
-		$( '#wc-sec-overwrite-row' ).addClass( 'hidden' );
+		dropzoneReset();
 		$( '#wc-sec-sheet-selection' ).addClass( 'hidden' );
 		$( '#wc-sec-header-row' ).val( '1' );
 		$( '#wc-sec-step1-next' ).prop( 'disabled', true );

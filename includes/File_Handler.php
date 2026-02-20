@@ -153,17 +153,20 @@ class File_Handler {
 	/**
 	 * Handle a file upload from $_FILES.
 	 *
+	 * If a file with the same name already exists the new file is automatically
+	 * renamed by appending -1, -2, … before the extension until a free slot is
+	 * found (up to 999 attempts).
+	 *
 	 * @param array{
 	 *   name: string,
 	 *   type: string,
 	 *   tmp_name: string,
 	 *   error: int,
 	 *   size: int
-	 * } $file   The $_FILES entry.
-	 * @param bool  $overwrite Whether to overwrite existing file with same name.
-	 * @return string|\WP_Error Relative filename on success, WP_Error on failure.
+	 * } $file The $_FILES entry.
+	 * @return string|\WP_Error Relative filename (possibly renamed) on success, WP_Error on failure.
 	 */
-	public function handle_upload( array $file, bool $overwrite = false ): string|\WP_Error {
+	public function handle_upload( array $file ): string|\WP_Error {
 		// Check for PHP upload errors.
 		if ( $file['error'] !== UPLOAD_ERR_OK ) {
 			return new \WP_Error(
@@ -212,30 +215,29 @@ class File_Handler {
 		// Ensure upload directories exist.
 		self::ensure_upload_dir();
 
-		$upload_dir   = self::get_imports_dir();
-		$target_path  = $upload_dir . $filename;
-		$file_exists  = file_exists( $target_path );
+		$upload_dir = self::get_imports_dir();
 
-		if ( $file_exists && ! $overwrite ) {
-			return new \WP_Error(
-				'wc_sec_file_exists',
-				sprintf(
-					/* translators: %s: filename */
-					__( 'A file named "%s" already exists. Set overwrite=true to replace it.', 'wc-sku-ean-comparator' ),
-					esc_html( $filename )
-				)
-			);
+		// Auto-rename: if the target path is occupied, append -1, -2, … before the extension.
+		$basename    = pathinfo( $filename, PATHINFO_FILENAME );
+		$target_name = $filename;
+
+		if ( file_exists( $upload_dir . $target_name ) ) {
+			$counter = 1;
+			do {
+				$target_name = $basename . '-' . $counter . '.' . $extension;
+				++$counter;
+			} while ( file_exists( $upload_dir . $target_name ) && $counter <= 999 );
 		}
 
 		// Move uploaded file.
-		if ( ! move_uploaded_file( $file['tmp_name'], $target_path ) ) {
+		if ( ! move_uploaded_file( $file['tmp_name'], $upload_dir . $target_name ) ) {
 			return new \WP_Error(
 				'wc_sec_move_failed',
 				__( 'Failed to save uploaded file. Check directory permissions.', 'wc-sku-ean-comparator' )
 			);
 		}
 
-		return $filename;
+		return $target_name;
 	}
 
 	/**
