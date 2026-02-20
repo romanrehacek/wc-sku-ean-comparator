@@ -168,8 +168,9 @@ class Comparator {
 
 				$select_cases = implode( ", \n\t\t\t\t\t", $case_parts );
 
-				// Build the full query parameter array: meta keys for CASE, then batch IDs, then meta keys for IN().
-				$query_params = array_merge( $meta_key_binds, $batch_ids, $meta_key_binds );
+			// Build the full query parameter array: meta keys for CASE, then meta keys for IN(), then batch IDs.
+			// SQL placeholder order: CASE %s × N, IN(meta) %s × N, IN(ids) %d × K.
+			$query_params = array_merge( $meta_key_binds, $meta_key_binds, $batch_ids );
 
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$rows = $wpdb->get_results(
