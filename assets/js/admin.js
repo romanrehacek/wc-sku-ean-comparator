@@ -57,7 +57,9 @@
 			.addClass( type ? 'wc-sec-notice--' + type : '' )
 			.html( message )
 			.removeClass( 'hidden' );
-		$notice[ 0 ].scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+		if ( $notice[ 0 ] ) {
+			$notice[ 0 ].scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+		}
 	}
 
 	function hideNotice( selector ) {
