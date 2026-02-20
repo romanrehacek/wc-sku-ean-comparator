@@ -4,8 +4,8 @@
  * Plugin URI:        https://github.com/sjbdigital/wc-sku-ean-comparator
  * Description:       Import price lists (CSV/XLS/XLSX) and compare products against WooCommerce catalog by SKU, EAN and name. Generates output CSV files with match results.
  * Version:           1.0.16
- * Author:            SJB Digital
- * Author URI:        https://sjbdigital.dev
+ * Author:            Roman Rehacek
+ * Author URI:        https://github.com/romanrehacek
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       wc-sku-ean-comparator
