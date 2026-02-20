@@ -257,14 +257,51 @@ class Admin_Page {
 	}
 
 	/**
-	 * Render the Settings tab content (placeholder for future use).
+	 * Render the Settings tab content. Handles form submission and displays the form.
 	 *
 	 * @return void
 	 */
 	private function render_settings(): void {
-		echo '<div class="wc-sec-settings-placeholder">';
-		echo '<p>' . esc_html__( 'Settings will be available in a future version.', 'wc-sku-ean-comparator' ) . '</p>';
-		echo '</div>';
+		$option_key = 'wc_sec_settings';
+		$saved      = false;
+
+		// Process form submission.
+		if (
+			isset( $_POST['wc_sec_settings_nonce'] ) &&
+			wp_verify_nonce( sanitize_key( wp_unslash( $_POST['wc_sec_settings_nonce'] ) ), 'wc_sec_save_settings' )
+		) {
+			$settings = array(
+				'delete_tables_on_uninstall' => isset( $_POST['delete_tables_on_uninstall'] ) ? 1 : 0,
+				'delete_files_on_uninstall'  => isset( $_POST['delete_files_on_uninstall'] ) ? 1 : 0,
+			);
+			update_option( $option_key, $settings );
+			$saved = true;
+		}
+
+		$settings = wp_parse_args(
+			(array) get_option( $option_key, array() ),
+			array(
+				'delete_tables_on_uninstall' => 0,
+				'delete_files_on_uninstall'  => 0,
+			)
+		);
+
+		$template = WC_SEC_PLUGIN_DIR . 'templates/settings.php';
+
+		if ( file_exists( $template ) ) {
+			include $template;
+		} else {
+			echo '<p>' . esc_html__( 'Template file not found.', 'wc-sku-ean-comparator' ) . '</p>';
+		}
+	}
+
+	/**
+	 * Get the URL for the Settings tab.
+	 *
+	 * @return string Admin URL.
+	 */
+	public static function get_settings_url(): string {
+		return add_query_arg( 'tab', 'settings', admin_url( 'tools.php?page=' . self::MENU_SLUG ) );
 	}
 
 	/**

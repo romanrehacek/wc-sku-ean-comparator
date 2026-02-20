@@ -132,6 +132,15 @@ register_activation_hook(
 
 		// Store plugin version.
 		update_option( 'wc_sec_db_version', WC_SEC_VERSION );
+
+		// Store default settings (only if not already set, preserving existing values on re-activation).
+		add_option(
+			'wc_sec_settings',
+			array(
+				'delete_tables_on_uninstall' => 0,
+				'delete_files_on_uninstall'  => 0,
+			)
+		);
 	}
 );
 
