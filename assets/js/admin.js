@@ -651,6 +651,12 @@
 				$( '#wc-sec-results' ).removeClass( 'hidden' );
 				$( '#wc-sec-results-footer' ).show();
 
+				// Show meta info: file name, sheet name, brands.
+				var selectedSheetName = ( state.sheetNames && state.sheetIndex < state.sheetNames.length )
+					? state.sheetNames[ state.sheetIndex ]
+					: '';
+				renderComparisonMeta( state.filename, selectedSheetName, state.brandSlugs );
+
 				renderStats( res.stats );
 				renderCsvLinks( res.csv_pricelist_url, res.csv_shop_url );
 
@@ -681,6 +687,41 @@
 	function setRunProgress( pct, label ) {
 		$( '#wc-sec-run-progress-fill' ).css( 'width', pct + '%' );
 		$( '#wc-sec-run-progress-label' ).text( label );
+	}
+
+	// =========================================================================
+	// Render: comparison meta info (file, sheet, brands)
+	// =========================================================================
+
+	/**
+	 * Render the comparison meta info bar above the stats.
+	 *
+	 * @param {string}   filename   Name of the price list file.
+	 * @param {string}   sheetName  Name of the selected sheet (empty for CSV).
+	 * @param {string[]} brandSlugs Array of selected brand slugs.
+	 */
+	function renderComparisonMeta( filename, sheetName, brandSlugs ) {
+		var html = '<table class="wc-sec-meta-table form-table">';
+
+		html += '<tr><th>' + escHtml( data.i18n.metaFile ) + '</th>' +
+			'<td>' + escHtml( filename ) + '</td></tr>';
+
+		if ( sheetName ) {
+			html += '<tr><th>' + escHtml( data.i18n.metaSheet ) + '</th>' +
+				'<td>' + escHtml( sheetName ) + '</td></tr>';
+		}
+
+		html += '<tr><th>' + escHtml( data.i18n.metaBrands ) + '</th><td>';
+		if ( ! brandSlugs || ! brandSlugs.length ) {
+			html += '<em>' + escHtml( data.i18n.metaAllBrands ) + '</em>';
+		} else {
+			html += escHtml( brandSlugs.join( ', ' ) );
+		}
+		html += '</td></tr>';
+
+		html += '</table>';
+
+		$( '#wc-sec-comparison-meta' ).html( html );
 	}
 
 	// =========================================================================
@@ -809,6 +850,21 @@
 		$tbody.html( html );
 	}
 
+	/**
+	 * Build an edit link for a shop product name.
+	 *
+	 * @param {number|string} shopId   Product post ID.
+	 * @param {string}        shopName Product name.
+	 * @return {string} HTML anchor or plain escaped text.
+	 */
+	function shopNameCell( shopId, shopName ) {
+		if ( shopId && data.editProductUrl ) {
+			return '<a href="' + escHtml( data.editProductUrl ) + escHtml( shopId ) + '" target="_blank">' +
+				escHtml( shopName ) + '</a>';
+		}
+		return escHtml( shopName );
+	}
+
 	function buildResultRow( row, type ) {
 		if ( 'pricelist' === type ) {
 			var statusBadge = row.found
@@ -820,8 +876,8 @@
 				'<td>' + escHtml( row.pricelist_sku ) + '</td>' +
 				'<td>' + escHtml( row.pricelist_ean ) + '</td>' +
 				'<td>' + statusBadge + '</td>' +
-				'<td>' + ( row.shop_id ? escHtml( row.shop_id ) : '' ) + '</td>' +
-				'<td>' + escHtml( row.shop_name ) + '</td>' +
+				'<td>' + ( row.shop_id ? escHtml( String( row.shop_id ) ) : '' ) + '</td>' +
+				'<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>' +
 				'<td>' + escHtml( row.shop_sku ) + '</td>' +
 				'<td>' + escHtml( row.shop_ean ) + '</td>' +
 				'</tr>';
@@ -831,8 +887,8 @@
 				: '<span class="wc-sec-badge wc-sec-badge--not-in-pricelist">No</span>';
 
 			return '<tr class="' + ( row.in_pricelist ? '' : 'wc-sec-row--unmatched' ) + '">' +
-				'<td>' + escHtml( row.shop_id ) + '</td>' +
-				'<td>' + escHtml( row.shop_name ) + '</td>' +
+				'<td>' + escHtml( String( row.shop_id ) ) + '</td>' +
+				'<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>' +
 				'<td>' + escHtml( row.shop_sku ) + '</td>' +
 				'<td>' + escHtml( row.shop_ean ) + '</td>' +
 				'<td>' + inPricelist + '</td>' +

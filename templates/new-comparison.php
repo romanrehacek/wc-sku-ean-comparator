@@ -236,6 +236,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<!-- Results (shown after completion) -->
 		<div id="wc-sec-results" class="hidden">
 
+			<!-- Comparison meta info (file, sheet, brands) -->
+			<div class="wc-sec-comparison-meta" id="wc-sec-comparison-meta"></div>
+
 			<!-- Summary stats -->
 			<div class="wc-sec-stats" id="wc-sec-stats-wrap"></div>
 

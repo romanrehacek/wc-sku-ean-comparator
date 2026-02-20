@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 $stats         = is_array( $comparison['stats'] ) ? $comparison['stats'] : array();
 $brand_slugs   = is_array( $comparison['brand_slugs'] ) ? $comparison['brand_slugs'] : array();
 $column_mapping = is_array( $comparison['column_mapping'] ) ? $comparison['column_mapping'] : array();
+$sheet_name    = isset( $column_mapping['sheet_name'] ) ? (string) $column_mapping['sheet_name'] : '';
 
 $csv1_url = ! empty( $comparison['csv_pricelist_to_shop'] )
 	? WC_SKU_EAN_Comparator\File_Handler::get_exports_url() . $comparison['csv_pricelist_to_shop']
@@ -59,6 +60,12 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 				<th><?php esc_html_e( 'File', 'wc-sku-ean-comparator' ); ?></th>
 				<td><?php echo esc_html( $comparison['file_name'] ); ?></td>
 			</tr>
+			<?php if ( ! empty( $sheet_name ) ) : ?>
+			<tr>
+				<th><?php esc_html_e( 'Sheet', 'wc-sku-ean-comparator' ); ?></th>
+				<td><?php echo esc_html( $sheet_name ); ?></td>
+			</tr>
+			<?php endif; ?>
 			<tr>
 				<th><?php esc_html_e( 'Date', 'wc-sku-ean-comparator' ); ?></th>
 				<td>

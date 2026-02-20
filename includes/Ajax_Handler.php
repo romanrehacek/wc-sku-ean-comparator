@@ -354,6 +354,7 @@ class Ajax_Handler {
 			'ean_columns'  => array_map( 'absint', (array) ( $column_mapping['ean_columns'] ?? array() ) ),
 			'name_columns' => array_map( 'absint', (array) ( $column_mapping['name_columns'] ?? array() ) ),
 			'header_row'   => $header_row,
+			'sheet_index'  => $sheet_index,
 		);
 
 		if ( '' === $filename ) {
@@ -364,6 +365,16 @@ class Ajax_Handler {
 		$filepath = $this->file_handler->get_file_path( $filename );
 		if ( is_wp_error( $filepath ) ) {
 			wp_send_json_error( array( 'message' => $filepath->get_error_message() ) );
+		}
+
+		// Resolve sheet name for XLS/XLSX files.
+		$extension  = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+		$sheet_name = '';
+		if ( in_array( $extension, array( 'xls', 'xlsx' ), true ) ) {
+			$sheet_names_list = $this->file_handler->get_sheet_names( $filepath );
+			if ( ! is_wp_error( $sheet_names_list ) && isset( $sheet_names_list[ $sheet_index ] ) ) {
+				$sheet_name = $sheet_names_list[ $sheet_index ];
+			}
 		}
 
 		// Parse file.
@@ -391,8 +402,7 @@ class Ajax_Handler {
 		$column_mapping['sku_column_names']  = $resolve_names( $column_mapping['sku_columns'] );
 		$column_mapping['ean_column_names']  = $resolve_names( $column_mapping['ean_columns'] );
 		$column_mapping['name_column_names'] = $resolve_names( $column_mapping['name_columns'] );
-
-		// Load product maps (filtered by brands if specified).
+		$column_mapping['sheet_name']        = $sheet_name;
 		$product_maps = $this->comparator->load_product_maps( $brand_slugs );
 
 		// Run comparisons.
@@ -536,7 +546,7 @@ class Ajax_Handler {
 		$brand_slugs    = is_array( $comparison['brand_slugs'] ) ? $comparison['brand_slugs'] : array();
 		$brand_slugs    = array_map( 'sanitize_key', $brand_slugs );
 		$header_row     = isset( $column_mapping['header_row'] ) ? absint( $column_mapping['header_row'] ) : 0;
-		$sheet_index    = 0; // Sheet index is not stored; default to 0.
+		$sheet_index    = isset( $column_mapping['sheet_index'] ) ? absint( $column_mapping['sheet_index'] ) : 0;
 
 		// Validate column_mapping structure.
 		if ( ! is_array( $column_mapping ) || ! isset( $column_mapping['sku_columns'] ) ) {
@@ -547,6 +557,16 @@ class Ajax_Handler {
 		$filepath = $this->file_handler->get_file_path( $filename );
 		if ( is_wp_error( $filepath ) ) {
 			wp_send_json_error( array( 'message' => $filepath->get_error_message() ) );
+		}
+
+		// Refresh sheet name for XLS/XLSX files.
+		$extension  = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+		$sheet_name = '';
+		if ( in_array( $extension, array( 'xls', 'xlsx' ), true ) ) {
+			$sheet_names_list = $this->file_handler->get_sheet_names( $filepath );
+			if ( ! is_wp_error( $sheet_names_list ) && isset( $sheet_names_list[ $sheet_index ] ) ) {
+				$sheet_name = $sheet_names_list[ $sheet_index ];
+			}
 		}
 
 		// Parse file.
@@ -574,6 +594,8 @@ class Ajax_Handler {
 		$column_mapping['sku_column_names']  = $resolve_names( (array) ( $column_mapping['sku_columns'] ?? array() ) );
 		$column_mapping['ean_column_names']  = $resolve_names( (array) ( $column_mapping['ean_columns'] ?? array() ) );
 		$column_mapping['name_column_names'] = $resolve_names( (array) ( $column_mapping['name_columns'] ?? array() ) );
+		$column_mapping['sheet_name']        = $sheet_name;
+		$column_mapping['sheet_index']       = $sheet_index;
 
 		// Load product maps.
 		$product_maps = $this->comparator->load_product_maps( $brand_slugs );

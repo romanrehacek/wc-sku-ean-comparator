@@ -127,6 +127,7 @@ class Admin_Page {
 				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
 				'nonce'     => wp_create_nonce( 'wc_sec_ajax' ),
 				'pluginUrl' => WC_SEC_PLUGIN_URL,
+				'editProductUrl' => admin_url( 'post.php?action=edit&post=' ),
 				'i18n'      => array(
 					'confirmDelete'      => __( 'Are you sure you want to delete this item? This action cannot be undone.', 'wc-sku-ean-comparator' ),
 					'confirmDeleteFile'  => __( 'Are you sure you want to delete this file?', 'wc-sku-ean-comparator' ),
@@ -152,6 +153,11 @@ class Admin_Page {
 					// CSV download link labels.
 					'downloadPricelist'   => __( 'Download Pricelist→Shop CSV', 'wc-sku-ean-comparator' ),
 					'downloadShop'        => __( 'Download Shop→Pricelist CSV', 'wc-sku-ean-comparator' ),
+					// Comparison meta info labels.
+					'metaFile'            => __( 'File', 'wc-sku-ean-comparator' ),
+					'metaSheet'           => __( 'Sheet', 'wc-sku-ean-comparator' ),
+					'metaBrands'          => __( 'Brands', 'wc-sku-ean-comparator' ),
+					'metaAllBrands'       => __( 'All brands', 'wc-sku-ean-comparator' ),
 				),
 			)
 		);
