@@ -11,30 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<p class="description">
-		<?php esc_html_e( 'Import a price list and compare products against your WooCommerce catalog by SKU and EAN.', 'wc-sku-ean-comparator' ); ?>
-	</p>
-
-	<!-- Step indicators -->
-	<div class="wc-sec-steps" id="wc-sec-steps">
-		<div class="wc-sec-step active" data-step="1">
-			<span class="wc-sec-step__number">1</span>
-			<span class="wc-sec-step__label"><?php esc_html_e( 'File', 'wc-sku-ean-comparator' ); ?></span>
-		</div>
-		<div class="wc-sec-step" data-step="2">
-			<span class="wc-sec-step__number">2</span>
-			<span class="wc-sec-step__label"><?php esc_html_e( 'Brands', 'wc-sku-ean-comparator' ); ?></span>
-		</div>
-		<div class="wc-sec-step" data-step="3">
-			<span class="wc-sec-step__number">3</span>
-			<span class="wc-sec-step__label"><?php esc_html_e( 'Columns', 'wc-sku-ean-comparator' ); ?></span>
-		</div>
-		<div class="wc-sec-step" data-step="4">
-			<span class="wc-sec-step__number">4</span>
-			<span class="wc-sec-step__label"><?php esc_html_e( 'Compare', 'wc-sku-ean-comparator' ); ?></span>
-		</div>
-	</div>
-
 	<!-- Global notice area -->
 	<div id="wc-sec-notice" class="wc-sec-notice hidden"></div>
 
@@ -45,10 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h2><?php esc_html_e( 'Step 1: Select Price List File', 'wc-sku-ean-comparator' ); ?></h2>
 
 		<div class="wc-sec-file-tabs">
-			<button type="button" class="button wc-sec-tab-btn active" data-tab="upload">
+			<button type="button" class="wc-sec-tab-btn active" data-tab="upload">
 				<?php esc_html_e( 'Upload New File', 'wc-sku-ean-comparator' ); ?>
 			</button>
-			<button type="button" class="button wc-sec-tab-btn" data-tab="existing">
+			<button type="button" class="wc-sec-tab-btn" data-tab="existing">
 				<?php esc_html_e( 'Use Existing File', 'wc-sku-ean-comparator' ); ?>
 			</button>
 		</div>
@@ -223,10 +199,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<!-- Results tabs -->
 			<div class="wc-sec-result-tabs">
-				<button type="button" class="button wc-sec-result-tab active" data-tab="pricelist">
+				<button type="button" class="wc-sec-result-tab active" data-tab="pricelist">
 					<?php esc_html_e( 'Pricelist → Shop', 'wc-sku-ean-comparator' ); ?>
 				</button>
-				<button type="button" class="button wc-sec-result-tab" data-tab="shop">
+				<button type="button" class="wc-sec-result-tab" data-tab="shop">
 					<?php esc_html_e( 'Shop → Pricelist', 'wc-sku-ean-comparator' ); ?>
 				</button>
 			</div>

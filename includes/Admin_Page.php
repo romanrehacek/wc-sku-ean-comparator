@@ -190,8 +190,11 @@ class Admin_Page {
 		}
 
 		echo '<div class="wrap wc-sec-wrap">';
+		echo '<div class="wc-sec-header">';
 		echo '<h1>' . esc_html__( 'WC SKU/EAN Comparator', 'wc-sku-ean-comparator' ) . '</h1>';
 		$this->render_tab_nav( $tab );
+		echo '</div>';
+		echo '<div class="wc-sec-content">';
 
 		switch ( $tab ) {
 			case 'history':
@@ -204,6 +207,7 @@ class Admin_Page {
 				$this->render_new_comparison();
 		}
 
+		echo '</div>';
 		echo '</div>';
 	}
 

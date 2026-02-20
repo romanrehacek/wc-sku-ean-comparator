@@ -9,11 +9,71 @@
    ========================================================================== */
 
 .wc-sec-wrap {
-	max-width: 1400px;
+	/* Remove the default .wrap top-margin so our header starts flush */
+	margin-top: 0;
 }
 
-.wc-sec-wrap h1 {
-	margin-bottom: 16px;
+/* White header bar (title + main tabs) — mimics WC settings page */
+.wc-sec-header {
+	background: #fff;
+	/* Bleed into WordPress admin content padding on all three sides */
+	margin: -10px -20px 0 -20px;
+	padding: 10px 20px 0 20px;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.wc-sec-header h1 {
+	margin-bottom: 8px;
+}
+
+/* Grey content area below the header */
+.wc-sec-content {
+	padding-top: 20px;
+}
+
+/* ==========================================================================
+   Main tab navigation (WC-style: white bg, blue underline, no tab borders)
+   ========================================================================== */
+
+.wc-sec-header .nav-tab-wrapper,
+.wc-sec-header .woo-nav-tab-wrapper {
+	background: transparent;
+	border-bottom: none; /* header div itself carries the border */
+	padding-bottom: 0;
+	margin: 0;
+}
+
+.wc-sec-header .nav-tab {
+	background: transparent !important;
+	border: none !important;
+	border-bottom: 3px solid transparent !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	color: #50575e !important;
+	font-size: 14px;
+	font-weight: 400 !important;
+	margin-bottom: -1px; /* hang 1 px below header border so active line overlaps it */
+	padding: 8px 16px;
+	text-decoration: none;
+}
+
+.wc-sec-header .nav-tab:hover {
+	background: transparent !important;
+	border-bottom-color: #2271b1 !important;
+	color: #1d2327 !important;
+}
+
+.wc-sec-header .nav-tab-active,
+.wc-sec-header .nav-tab-active:focus,
+.wc-sec-header .nav-tab-active:hover {
+	background: transparent !important;
+	border: none !important;
+	border-bottom: 3px solid #2271b1 !important;
+	border-radius: 0 !important;
+	color: #1d2327 !important;
+	font-weight: 600 !important;
+	box-shadow: none !important;
+	outline: none;
 }
 
 /* ==========================================================================
@@ -45,60 +105,71 @@
 .wc-sec-steps {
 	display: flex;
 	align-items: center;
-	margin-bottom: 24px;
 	gap: 0;
+	margin-bottom: 20px;
+}
+
+/* Connector line between steps */
+.wc-sec-step + .wc-sec-step::before {
+	content: "";
+	display: block;
+	width: 32px;
+	height: 1px;
+	background: #c3c4c7;
+	flex-shrink: 0;
 }
 
 .wc-sec-step {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 20px 8px 12px;
-	background: #f6f7f7;
-	color: #757575;
-	border: 1px solid #c3c4c7;
-	border-right: none;
+	gap: 7px;
 	font-size: 13px;
-	position: relative;
-	clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
-	margin-left: -6px;
-	min-width: 110px;
-}
-
-.wc-sec-step:first-child {
-	clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
-	margin-left: 0;
+	color: #646970;
+	white-space: nowrap;
 }
 
 .wc-sec-step.active {
-	background: #2271b1;
-	color: #fff;
-	border-color: #2271b1;
-	z-index: 1;
+	color: #1d2327;
 }
 
 .wc-sec-step.completed {
-	background: #00a32a;
-	color: #fff;
-	border-color: #00a32a;
+	color: #646970;
 }
 
 .wc-sec-step__number {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 22px;
-	height: 22px;
+	width: 24px;
+	height: 24px;
 	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.25);
+	border: 2px solid #c3c4c7;
+	background: #fff;
 	font-weight: 700;
 	font-size: 12px;
 	flex-shrink: 0;
+	color: #646970;
 }
 
-.wc-sec-step:not(.active):not(.completed) .wc-sec-step__number {
-	background: #c3c4c7;
+.wc-sec-step.active .wc-sec-step__number {
+	background: #2271b1;
+	border-color: #2271b1;
 	color: #fff;
+}
+
+.wc-sec-step.completed .wc-sec-step__number {
+	background: #fff;
+	border-color: #646970;
+	color: #646970;
+}
+
+.wc-sec-step__label {
+	font-weight: 400;
+}
+
+.wc-sec-step.active .wc-sec-step__label {
+	font-weight: 600;
+	color: #1d2327;
 }
 
 /* ==========================================================================
@@ -129,28 +200,46 @@
 }
 
 /* ==========================================================================
-   File Tabs
+   File Tabs (second-level sub-nav, WC style)
    ========================================================================== */
 
 .wc-sec-file-tabs {
 	display: flex;
+	align-items: center;
 	gap: 0;
 	margin-bottom: 20px;
+	padding-bottom: 12px;
 	border-bottom: 1px solid #c3c4c7;
 }
 
+/* Separator | between items (via pseudo on all but first) */
+.wc-sec-tab-btn + .wc-sec-tab-btn::before {
+	content: "|";
+	color: #c3c4c7;
+	margin: 0 6px;
+	font-weight: 400;
+}
+
 .wc-sec-tab-btn {
-	border-radius: 0 !important;
-	border-bottom: none !important;
-	margin-bottom: -1px !important;
-	position: relative;
+	all: unset;
+	cursor: pointer;
+	font-size: 13px;
+	color: #2271b1;
+	text-decoration: none;
+	padding: 0;
+	line-height: 1.4;
+}
+
+.wc-sec-tab-btn:hover {
+	color: #135e96;
+	text-decoration: underline;
 }
 
 .wc-sec-tab-btn.active {
-	background: #fff !important;
-	border-color: #c3c4c7 !important;
-	border-bottom-color: #fff !important;
-	color: #2271b1 !important;
+	color: #1d2327;
+	font-weight: 600;
+	cursor: default;
+	text-decoration: none;
 }
 
 .wc-sec-tab-content {
@@ -419,28 +508,46 @@
 }
 
 /* ==========================================================================
-   Result Tabs
+   Result Tabs (second-level sub-nav, WC style)
    ========================================================================== */
 
 .wc-sec-result-tabs {
 	display: flex;
+	align-items: center;
 	gap: 0;
 	margin: 20px 0 0;
+	padding-bottom: 12px;
 	border-bottom: 1px solid #c3c4c7;
 }
 
+/* Separator | between items */
+.wc-sec-result-tab + .wc-sec-result-tab::before {
+	content: "|";
+	color: #c3c4c7;
+	margin: 0 6px;
+	font-weight: 400;
+}
+
 .wc-sec-result-tab {
-	border-radius: 0 !important;
-	border-bottom: none !important;
-	margin-bottom: -1px !important;
+	all: unset;
+	cursor: pointer;
+	font-size: 13px;
+	color: #2271b1;
+	text-decoration: none;
+	padding: 0;
+	line-height: 1.4;
+}
+
+.wc-sec-result-tab:hover {
+	color: #135e96;
+	text-decoration: underline;
 }
 
 .wc-sec-result-tab.active {
-	background: #fff !important;
-	border-color: #c3c4c7 !important;
-	border-bottom-color: #fff !important;
-	color: #2271b1 !important;
+	color: #1d2327;
 	font-weight: 600;
+	cursor: default;
+	text-decoration: none;
 }
 
 .wc-sec-result-content {

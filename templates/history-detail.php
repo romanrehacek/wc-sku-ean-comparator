@@ -170,10 +170,10 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 	<?php if ( is_array( $comparison['results_summary'] ) ) : ?>
 
 		<div class="wc-sec-result-tabs">
-			<button type="button" class="button wc-sec-result-tab active" data-tab="pricelist">
+			<button type="button" class="wc-sec-result-tab active" data-tab="pricelist">
 				<?php esc_html_e( 'Pricelist → Shop', 'wc-sku-ean-comparator' ); ?>
 			</button>
-			<button type="button" class="button wc-sec-result-tab" data-tab="shop">
+			<button type="button" class="wc-sec-result-tab" data-tab="shop">
 				<?php esc_html_e( 'Shop → Pricelist', 'wc-sku-ean-comparator' ); ?>
 			</button>
 		</div>
