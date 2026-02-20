@@ -37,26 +37,17 @@ $sortable_col = static function ( string $col ) use ( $orderby, $order ): array 
 	$new_order = ( $is_active && 'DESC' === $order ) ? 'ASC' : 'DESC';
 	$url       = add_query_arg(
 		array(
-			'page'    => WC_SKU_EAN_Comparator\Admin_Page::HISTORY_SLUG,
+			'tab'     => 'history',
 			'orderby' => $col,
 			'order'   => $new_order,
 			'paged'   => 1,
 		),
-		admin_url( 'tools.php' )
+		WC_SKU_EAN_Comparator\Admin_Page::get_history_url()
 	);
 	return array( 'url' => $url, 'direction' => $new_order, 'active' => $is_active, 'current_order' => $order );
 };
 ?>
-<div class="wrap wc-sec-wrap">
-	<h1 class="wp-heading-inline">
-		<?php esc_html_e( 'Comparison History', 'wc-sku-ean-comparator' ); ?>
-	</h1>
-	<a href="<?php echo esc_url( WC_SKU_EAN_Comparator\Admin_Page::get_new_comparison_url() ); ?>" class="page-title-action">
-		<?php esc_html_e( 'New Comparison', 'wc-sku-ean-comparator' ); ?>
-	</a>
-	<hr class="wp-header-end">
-
-	<div id="wc-sec-history-notice" class="wc-sec-notice hidden"></div>
+<div id="wc-sec-history-notice" class="wc-sec-notice hidden"></div>
 
 	<?php if ( empty( $comparisons ) ) : ?>
 		<div class="wc-sec-empty-state">
@@ -231,15 +222,15 @@ $sortable_col = static function ( string $col ) use ( $orderby, $order ): array 
 				<div class="tablenav-pages">
 					<?php
 				$page_links = paginate_links(
-					array(
-						'base'      => add_query_arg( array( 'paged' => '%#%', 'orderby' => $orderby, 'order' => $order ) ),
-						'format'    => '',
-						'prev_text' => '&laquo;',
-						'next_text' => '&raquo;',
-						'total'     => $total_pages,
-							'current'   => $paged,
-						)
-					);
+				array(
+					'base'      => add_query_arg( array( 'tab' => 'history', 'paged' => '%#%', 'orderby' => $orderby, 'order' => $order ), WC_SKU_EAN_Comparator\Admin_Page::get_history_url() ),
+					'format'    => '',
+					'prev_text' => '&laquo;',
+					'next_text' => '&raquo;',
+					'total'     => $total_pages,
+						'current'   => $paged,
+					)
+				);
 
 					if ( $page_links ) {
 						echo wp_kses_post( $page_links );
@@ -250,4 +241,3 @@ $sortable_col = static function ( string $col ) use ( $orderby, $order ): array 
 		<?php endif; ?>
 
 	<?php endif; ?>
-</div><!-- /.wrap -->

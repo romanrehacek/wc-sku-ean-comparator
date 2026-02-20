@@ -11,9 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="wrap wc-sec-wrap">
-	<h1><?php esc_html_e( 'WC SKU/EAN Comparator', 'wc-sku-ean-comparator' ); ?></h1>
-	<p class="description">
+<p class="description">
 		<?php esc_html_e( 'Import a price list and compare products against your WooCommerce catalog by SKU and EAN.', 'wc-sku-ean-comparator' ); ?>
 	</p>
 
@@ -309,13 +307,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div><!-- /results -->
 
 		<div class="wc-sec-panel__footer" id="wc-sec-results-footer" style="display:none;">
-			<a href="<?php echo esc_url( WC_SKU_EAN_Comparator\Admin_Page::get_history_url() ); ?>" class="button">
-				<?php esc_html_e( 'View History', 'wc-sku-ean-comparator' ); ?>
-			</a>
 			<button type="button" class="button button-primary" id="wc-sec-new-comparison-btn">
 				<?php esc_html_e( 'New Comparison', 'wc-sku-ean-comparator' ); ?>
 			</button>
 		</div>
 	</div><!-- /step 4 -->
-
-</div><!-- /.wrap -->

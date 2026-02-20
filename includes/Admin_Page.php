@@ -14,38 +14,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class Admin_Page
  *
- * Registers the plugin admin menu under Tools, enqueues assets,
- * and dispatches rendering to template files.
+ * Registers a single plugin admin menu item under Tools, enqueues assets,
+ * and dispatches rendering to template files based on the active tab.
  */
 class Admin_Page {
 
 	/**
-	 * The admin menu slug for the main page.
+	 * The admin menu slug (single entry under Tools).
 	 *
 	 * @var string
 	 */
 	const MENU_SLUG = 'wc-sku-ean-comparator';
 
 	/**
-	 * The admin menu slug for the history subpage.
-	 *
-	 * @var string
-	 */
-	const HISTORY_SLUG = 'wc-sku-ean-comparator-history';
-
-	/**
 	 * The hook suffix returned by add_management_page (set after menu registration).
 	 *
 	 * @var string
 	 */
-	private string $hook_suffix_new = '';
-
-	/**
-	 * The hook suffix for the history page.
-	 *
-	 * @var string
-	 */
-	private string $hook_suffix_history = '';
+	private string $hook_suffix = '';
 
 	/**
 	 * History handler instance.
@@ -64,41 +50,31 @@ class Admin_Page {
 	}
 
 	/**
-	 * Register admin menu items under Tools.
+	 * Register a single admin menu item under Tools.
+	 *
+	 * All tabs (New Comparison, History, Settings) are served from this one
+	 * page via the ?tab= query parameter.
 	 *
 	 * @return void
 	 */
 	public function register_menu(): void {
-		// Main page: Tools > WC SKU/EAN Comparator (acts as "New Comparison").
-		$this->hook_suffix_new = (string) add_management_page(
+		$this->hook_suffix = (string) add_management_page(
 			__( 'WC SKU/EAN Comparator', 'wc-sku-ean-comparator' ),
 			__( 'WC SKU/EAN Comparator', 'wc-sku-ean-comparator' ),
 			'manage_options',
 			self::MENU_SLUG,
-			array( $this, 'render_new_comparison' )
-		);
-
-		// Submenu: History.
-		$this->hook_suffix_history = (string) add_submenu_page(
-			'tools.php',
-			__( 'Comparison History', 'wc-sku-ean-comparator' ),
-			__( 'Comparison History', 'wc-sku-ean-comparator' ),
-			'manage_options',
-			self::HISTORY_SLUG,
-			array( $this, 'render_history' )
+			array( $this, 'render_page' )
 		);
 	}
 
 	/**
-	 * Enqueue CSS and JS assets only on plugin admin pages.
+	 * Enqueue CSS and JS assets only on the plugin admin page.
 	 *
 	 * @param string $hook_suffix Current admin page hook suffix.
 	 * @return void
 	 */
 	public function enqueue_assets( string $hook_suffix ): void {
-		$plugin_pages = array( $this->hook_suffix_new, $this->hook_suffix_history );
-
-		if ( ! in_array( $hook_suffix, $plugin_pages, true ) ) {
+		if ( $hook_suffix !== $this->hook_suffix ) {
 			return;
 		}
 
@@ -133,66 +109,120 @@ class Admin_Page {
 					'confirmDeleteFile'  => __( 'Are you sure you want to delete this file?', 'wc-sku-ean-comparator' ),
 					'processing'         => __( 'Processing...', 'wc-sku-ean-comparator' ),
 					'loadingProducts'    => __( 'Loading products from shop...', 'wc-sku-ean-comparator' ),
-					'comparing'          => __( 'Comparing...', 'wc-sku-ean-comparator' ),
-					'done'               => __( 'Done!', 'wc-sku-ean-comparator' ),
-					'error'              => __( 'An error occurred. Please try again.', 'wc-sku-ean-comparator' ),
-					'selectFile'         => __( 'Please select a file.', 'wc-sku-ean-comparator' ),
-					'selectBrand'        => __( 'Please select at least one brand.', 'wc-sku-ean-comparator' ),
-					'selectSkuColumn'    => __( 'Please select at least one SKU column.', 'wc-sku-ean-comparator' ),
-					'rerun'              => __( 'Re-run Comparison', 'wc-sku-ean-comparator' ),
+					'comparing'         => __( 'Comparing...', 'wc-sku-ean-comparator' ),
+					'done'              => __( 'Done!', 'wc-sku-ean-comparator' ),
+					'error'             => __( 'An error occurred. Please try again.', 'wc-sku-ean-comparator' ),
+					'selectFile'        => __( 'Please select a file.', 'wc-sku-ean-comparator' ),
+					'selectBrand'       => __( 'Please select at least one brand.', 'wc-sku-ean-comparator' ),
+					'selectSkuColumn'   => __( 'Please select at least one SKU column.', 'wc-sku-ean-comparator' ),
+					'rerun'             => __( 'Re-run Comparison', 'wc-sku-ean-comparator' ),
 					// Stats card labels (Pricelist → Shop).
-					'pricelistToShop'     => __( 'Pricelist → Shop', 'wc-sku-ean-comparator' ),
-					'totalRows'           => __( 'Total rows', 'wc-sku-ean-comparator' ),
-					'foundInShop'         => __( 'Found in shop', 'wc-sku-ean-comparator' ),
-					'notFound'            => __( 'Not found', 'wc-sku-ean-comparator' ),
+					'pricelistToShop'   => __( 'Pricelist → Shop', 'wc-sku-ean-comparator' ),
+					'totalRows'         => __( 'Total rows', 'wc-sku-ean-comparator' ),
+					'foundInShop'       => __( 'Found in shop', 'wc-sku-ean-comparator' ),
+					'notFound'          => __( 'Not found', 'wc-sku-ean-comparator' ),
 					// Stats card labels (Shop → Pricelist).
-					'shopToPricelist'     => __( 'Shop → Pricelist', 'wc-sku-ean-comparator' ),
-					'shopProducts'        => __( 'Shop products', 'wc-sku-ean-comparator' ),
-					'inPricelist'         => __( 'In pricelist', 'wc-sku-ean-comparator' ),
-					'notInPricelist'      => __( 'Not in pricelist', 'wc-sku-ean-comparator' ),
+					'shopToPricelist'   => __( 'Shop → Pricelist', 'wc-sku-ean-comparator' ),
+					'shopProducts'      => __( 'Shop products', 'wc-sku-ean-comparator' ),
+					'inPricelist'       => __( 'In pricelist', 'wc-sku-ean-comparator' ),
+					'notInPricelist'    => __( 'Not in pricelist', 'wc-sku-ean-comparator' ),
 					// CSV download link labels.
-					'downloadPricelist'   => __( 'Download Pricelist→Shop CSV', 'wc-sku-ean-comparator' ),
-					'downloadShop'        => __( 'Download Shop→Pricelist CSV', 'wc-sku-ean-comparator' ),
+					'downloadPricelist' => __( 'Download Pricelist→Shop CSV', 'wc-sku-ean-comparator' ),
+					'downloadShop'      => __( 'Download Shop→Pricelist CSV', 'wc-sku-ean-comparator' ),
 					// Comparison meta info labels.
-					'metaFile'            => __( 'File', 'wc-sku-ean-comparator' ),
-					'metaSheet'           => __( 'Sheet', 'wc-sku-ean-comparator' ),
-					'metaBrands'          => __( 'Brands', 'wc-sku-ean-comparator' ),
-					'metaAllBrands'       => __( 'All brands', 'wc-sku-ean-comparator' ),
+					'metaFile'          => __( 'File', 'wc-sku-ean-comparator' ),
+					'metaSheet'         => __( 'Sheet', 'wc-sku-ean-comparator' ),
+					'metaBrands'        => __( 'Brands', 'wc-sku-ean-comparator' ),
+					'metaAllBrands'     => __( 'All brands', 'wc-sku-ean-comparator' ),
 				),
 			)
 		);
 	}
 
 	/**
-	 * Render the New Comparison admin page.
+	 * Main page callback. Dispatches to the correct tab renderer.
 	 *
 	 * @return void
 	 */
-	public function render_new_comparison(): void {
+	public function render_page(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-sku-ean-comparator' ) );
 		}
 
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'new-comparison';
+
+		// Whitelist of valid tabs; unknown tabs fall back to default.
+		$valid_tabs = array( 'new-comparison', 'history', 'settings' );
+		if ( ! in_array( $tab, $valid_tabs, true ) ) {
+			$tab = 'new-comparison';
+		}
+
+		echo '<div class="wrap wc-sec-wrap">';
+		echo '<h1>' . esc_html__( 'WC SKU/EAN Comparator', 'wc-sku-ean-comparator' ) . '</h1>';
+		$this->render_tab_nav( $tab );
+
+		switch ( $tab ) {
+			case 'history':
+				$this->render_history();
+				break;
+			case 'settings':
+				$this->render_settings();
+				break;
+			default:
+				$this->render_new_comparison();
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render the tab navigation bar.
+	 *
+	 * @param string $active_tab Currently active tab slug.
+	 * @return void
+	 */
+	private function render_tab_nav( string $active_tab ): void {
+		$tabs = array(
+			'new-comparison' => __( 'New Comparison', 'wc-sku-ean-comparator' ),
+			'history'        => __( 'History', 'wc-sku-ean-comparator' ),
+			'settings'       => __( 'Settings', 'wc-sku-ean-comparator' ),
+		);
+
+		echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper">';
+		foreach ( $tabs as $slug => $label ) {
+			$url   = add_query_arg( 'tab', $slug, admin_url( 'tools.php?page=' . self::MENU_SLUG ) );
+			$class = ( $slug === $active_tab ) ? 'nav-tab nav-tab-active' : 'nav-tab';
+			printf(
+				'<a href="%s" class="%s">%s</a>',
+				esc_url( $url ),
+				esc_attr( $class ),
+				esc_html( $label )
+			);
+		}
+		echo '</nav>';
+	}
+
+	/**
+	 * Render the New Comparison tab content.
+	 *
+	 * @return void
+	 */
+	private function render_new_comparison(): void {
 		$template = WC_SEC_PLUGIN_DIR . 'templates/new-comparison.php';
 
 		if ( file_exists( $template ) ) {
 			include $template;
 		} else {
-			echo '<div class="wrap"><h1>' . esc_html__( 'WC SKU/EAN Comparator', 'wc-sku-ean-comparator' ) . '</h1>';
-			echo '<p>' . esc_html__( 'Template file not found.', 'wc-sku-ean-comparator' ) . '</p></div>';
+			echo '<p>' . esc_html__( 'Template file not found.', 'wc-sku-ean-comparator' ) . '</p>';
 		}
 	}
 
 	/**
-	 * Render the History admin page (list or detail depending on query params).
+	 * Render the History tab content (list or detail depending on query params).
 	 *
 	 * @return void
 	 */
-	public function render_history(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-sku-ean-comparator' ) );
-		}
-
+	private function render_history(): void {
 		// Detail view if comparison_id is present.
 		$comparison_id = isset( $_GET['comparison_id'] ) ? absint( $_GET['comparison_id'] ) : 0;
 
@@ -222,13 +252,23 @@ class Admin_Page {
 		if ( file_exists( $template ) ) {
 			include $template;
 		} else {
-			echo '<div class="wrap"><h1>' . esc_html__( 'Comparison History', 'wc-sku-ean-comparator' ) . '</h1>';
-			echo '<p>' . esc_html__( 'Template file not found.', 'wc-sku-ean-comparator' ) . '</p></div>';
+			echo '<p>' . esc_html__( 'Template file not found.', 'wc-sku-ean-comparator' ) . '</p>';
 		}
 	}
 
 	/**
-	 * Get the URL for the New Comparison page.
+	 * Render the Settings tab content (placeholder for future use).
+	 *
+	 * @return void
+	 */
+	private function render_settings(): void {
+		echo '<div class="wc-sec-settings-placeholder">';
+		echo '<p>' . esc_html__( 'Settings will be available in a future version.', 'wc-sku-ean-comparator' ) . '</p>';
+		echo '</div>';
+	}
+
+	/**
+	 * Get the URL for the New Comparison tab.
 	 *
 	 * @return string Admin URL.
 	 */
@@ -237,12 +277,12 @@ class Admin_Page {
 	}
 
 	/**
-	 * Get the URL for the History list page.
+	 * Get the URL for the History tab.
 	 *
 	 * @return string Admin URL.
 	 */
 	public static function get_history_url(): string {
-		return admin_url( 'tools.php?page=' . self::HISTORY_SLUG );
+		return add_query_arg( 'tab', 'history', admin_url( 'tools.php?page=' . self::MENU_SLUG ) );
 	}
 
 	/**
@@ -254,10 +294,10 @@ class Admin_Page {
 	public static function get_history_detail_url( int $comparison_id ): string {
 		return add_query_arg(
 			array(
-				'page'          => self::HISTORY_SLUG,
+				'tab'           => 'history',
 				'comparison_id' => $comparison_id,
 			),
-			admin_url( 'tools.php' )
+			admin_url( 'tools.php?page=' . self::MENU_SLUG )
 		);
 	}
 }

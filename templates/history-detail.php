@@ -31,27 +31,7 @@ $shop_total     = isset( $stats['shop_total'] ) ? (int) $stats['shop_total'] : 0
 $shop_matched   = isset( $stats['shop_matched'] ) ? (int) $stats['shop_matched'] : 0;
 $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatched'] : 0;
 ?>
-<div class="wrap wc-sec-wrap">
-	<h1 class="wp-heading-inline">
-		<?php
-		echo esc_html(
-			sprintf(
-				/* translators: %d: comparison record ID */
-				__( 'Comparison #%d', 'wc-sku-ean-comparator' ),
-				$comparison['id']
-			)
-		);
-		?>
-	</h1>
-	<a href="<?php echo esc_url( WC_SKU_EAN_Comparator\Admin_Page::get_history_url() ); ?>" class="page-title-action">
-		&larr; <?php esc_html_e( 'Back to History', 'wc-sku-ean-comparator' ); ?>
-	</a>
-	<a href="<?php echo esc_url( WC_SKU_EAN_Comparator\Admin_Page::get_new_comparison_url() ); ?>" class="page-title-action">
-		<?php esc_html_e( 'New Comparison', 'wc-sku-ean-comparator' ); ?>
-	</a>
-	<hr class="wp-header-end">
-
-	<div id="wc-sec-detail-notice" class="wc-sec-notice hidden"></div>
+<div id="wc-sec-detail-notice" class="wc-sec-notice hidden"></div>
 
 	<!-- Meta info -->
 	<div class="wc-sec-detail-meta">
@@ -268,4 +248,3 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 		</button>
 	</div>
 
-</div><!-- /.wrap -->
