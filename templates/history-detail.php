@@ -33,138 +33,145 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 ?>
 <div id="wc-sec-detail-notice" class="wc-sec-notice hidden"></div>
 
-	<!-- Meta info -->
-	<div class="wc-sec-detail-meta">
-		<table class="form-table wc-sec-meta-table">
+	<!-- Detail header: meta info (left) + stat cards (right) -->
+	<div class="wc-sec-detail-header">
+
+		<!-- Meta info -->
+		<div class="wc-sec-detail-meta">
+			<table class="form-table wc-sec-meta-table">
+				<tr>
+					<th><?php esc_html_e( 'File', 'wc-sku-ean-comparator' ); ?></th>
+					<td><?php echo esc_html( $comparison['file_name'] ); ?></td>
+				</tr>
+				<?php if ( ! empty( $sheet_name ) ) : ?>
+				<tr>
+					<th><?php esc_html_e( 'Sheet', 'wc-sku-ean-comparator' ); ?></th>
+					<td><?php echo esc_html( $sheet_name ); ?></td>
+				</tr>
+				<?php endif; ?>
+				<tr>
+					<th><?php esc_html_e( 'Date', 'wc-sku-ean-comparator' ); ?></th>
+					<td>
+						<?php
+						echo esc_html(
+							wp_date(
+								get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
+								strtotime( $comparison['created_at'] )
+							)
+						);
+						?>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Brands', 'wc-sku-ean-comparator' ); ?></th>
+					<td>
+						<?php if ( empty( $brand_slugs ) ) : ?>
+							<em><?php esc_html_e( 'All brands', 'wc-sku-ean-comparator' ); ?></em>
+						<?php else : ?>
+							<?php echo esc_html( implode( ', ', $brand_slugs ) ); ?>
+						<?php endif; ?>
+					</td>
+				</tr>
+			<?php if ( ! empty( $column_mapping ) ) : ?>
 			<tr>
-				<th><?php esc_html_e( 'File', 'wc-sku-ean-comparator' ); ?></th>
-				<td><?php echo esc_html( $comparison['file_name'] ); ?></td>
-			</tr>
-			<?php if ( ! empty( $sheet_name ) ) : ?>
-			<tr>
-				<th><?php esc_html_e( 'Sheet', 'wc-sku-ean-comparator' ); ?></th>
-				<td><?php echo esc_html( $sheet_name ); ?></td>
-			</tr>
-			<?php endif; ?>
-			<tr>
-				<th><?php esc_html_e( 'Date', 'wc-sku-ean-comparator' ); ?></th>
+				<th><?php esc_html_e( 'Mapping Rules', 'wc-sku-ean-comparator' ); ?></th>
 				<td>
 					<?php
-					echo esc_html(
-						wp_date(
-							get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
-							strtotime( $comparison['created_at'] )
-						)
-					);
+					$rules = isset( $column_mapping['rules'] ) && is_array( $column_mapping['rules'] )
+						? $column_mapping['rules']
+						: array();
+					if ( ! empty( $rules ) ) :
 					?>
-				</td>
-			</tr>
-			<tr>
-				<th><?php esc_html_e( 'Brands', 'wc-sku-ean-comparator' ); ?></th>
-				<td>
-					<?php if ( empty( $brand_slugs ) ) : ?>
-						<em><?php esc_html_e( 'All brands', 'wc-sku-ean-comparator' ); ?></em>
+					<table class="wc-sec-rules-summary-table">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th><?php esc_html_e( 'Label', 'wc-sku-ean-comparator' ); ?></th>
+								<th><?php esc_html_e( 'Shop Field', 'wc-sku-ean-comparator' ); ?></th>
+								<th><?php esc_html_e( 'Pricelist Columns', 'wc-sku-ean-comparator' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+						<?php foreach ( $rules as $i => $rule ) :
+							$field      = isset( $rule['shop_field'] ) ? esc_html( $rule['shop_field'] ) : '';
+							$label      = isset( $rule['label'] ) ? esc_html( $rule['label'] ) : $field;
+							$custom_key = ( 'custom_field' === $rule['shop_field'] && ! empty( $rule['custom_key'] ) )
+								? ' <code>' . esc_html( $rule['custom_key'] ) . '</code>'
+								: '';
+							$col_names  = ! empty( $rule['pricelist_column_names'] )
+								? array_map( 'esc_html', (array) $rule['pricelist_column_names'] )
+								: array_map( 'intval', (array) ( $rule['pricelist_columns'] ?? array() ) );
+						?>
+						<tr>
+							<td><?php echo esc_html( (string) ( $i + 1 ) ); ?></td>
+							<td><?php echo esc_html( $label ); ?></td>
+							<td><?php echo esc_html( $field ); ?><?php echo wp_kses( $custom_key, array( 'code' => array() ) ); ?></td>
+							<td><?php echo esc_html( implode( ', ', array_map( 'strval', $col_names ) ) ); ?></td>
+						</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
 					<?php else : ?>
-						<?php echo esc_html( implode( ', ', $brand_slugs ) ); ?>
+						<em><?php esc_html_e( 'No rules stored.', 'wc-sku-ean-comparator' ); ?></em>
 					<?php endif; ?>
 				</td>
 			</tr>
-		<?php if ( ! empty( $column_mapping ) ) : ?>
-		<tr>
-			<th><?php esc_html_e( 'Mapping Rules', 'wc-sku-ean-comparator' ); ?></th>
-			<td>
-				<?php
-				$rules = isset( $column_mapping['rules'] ) && is_array( $column_mapping['rules'] )
-					? $column_mapping['rules']
-					: array();
-				if ( ! empty( $rules ) ) :
-				?>
-				<table class="wc-sec-rules-summary-table">
-					<thead>
-						<tr>
-							<th>#</th>
-							<th><?php esc_html_e( 'Label', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'Shop Field', 'wc-sku-ean-comparator' ); ?></th>
-							<th><?php esc_html_e( 'Pricelist Columns', 'wc-sku-ean-comparator' ); ?></th>
-						</tr>
-					</thead>
-					<tbody>
-					<?php foreach ( $rules as $i => $rule ) :
-						$field      = isset( $rule['shop_field'] ) ? esc_html( $rule['shop_field'] ) : '';
-						$label      = isset( $rule['label'] ) ? esc_html( $rule['label'] ) : $field;
-						$custom_key = ( 'custom_field' === $rule['shop_field'] && ! empty( $rule['custom_key'] ) )
-							? ' <code>' . esc_html( $rule['custom_key'] ) . '</code>'
-							: '';
-						$col_names  = ! empty( $rule['pricelist_column_names'] )
-							? array_map( 'esc_html', (array) $rule['pricelist_column_names'] )
-							: array_map( 'intval', (array) ( $rule['pricelist_columns'] ?? array() ) );
-					?>
-					<tr>
-						<td><?php echo esc_html( (string) ( $i + 1 ) ); ?></td>
-						<td><?php echo esc_html( $label ); ?></td>
-						<td><?php echo esc_html( $field ); ?><?php echo wp_kses( $custom_key, array( 'code' => array() ) ); ?></td>
-						<td><?php echo esc_html( implode( ', ', array_map( 'strval', $col_names ) ) ); ?></td>
-					</tr>
-					<?php endforeach; ?>
-					</tbody>
-				</table>
-				<?php else : ?>
-					<em><?php esc_html_e( 'No rules stored.', 'wc-sku-ean-comparator' ); ?></em>
+			<?php endif; ?>
+			</table>
+		</div>
+
+		<!-- Stats cards (right column) -->
+		<div class="wc-sec-detail-stats">
+
+			<div class="wc-sec-stat-card">
+				<h3><?php esc_html_e( 'Pricelist → Shop', 'wc-sku-ean-comparator' ); ?></h3>
+				<div class="wc-sec-stat-numbers">
+					<div class="wc-sec-stat-item">
+						<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $pl_total ) ); ?></span>
+						<span class="wc-sec-stat-label"><?php esc_html_e( 'Total rows', 'wc-sku-ean-comparator' ); ?></span>
+					</div>
+					<div class="wc-sec-stat-item wc-sec-stat-item--success">
+						<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $pl_matched ) ); ?></span>
+						<span class="wc-sec-stat-label"><?php esc_html_e( 'Found in shop', 'wc-sku-ean-comparator' ); ?></span>
+					</div>
+					<div class="wc-sec-stat-item wc-sec-stat-item--warning">
+						<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $pl_unmatched ) ); ?></span>
+						<span class="wc-sec-stat-label"><?php esc_html_e( 'Not found', 'wc-sku-ean-comparator' ); ?></span>
+					</div>
+				</div>
+				<?php if ( $csv1_url ) : ?>
+					<a href="<?php echo esc_url( $csv1_url ); ?>" class="button wc-sec-csv-dl-btn" download>
+						&#8595; <?php esc_html_e( 'Download CSV', 'wc-sku-ean-comparator' ); ?>
+					</a>
 				<?php endif; ?>
-			</td>
-		</tr>
-		<?php endif; ?>
-		</table>
-	</div>
-
-	<!-- Stats cards -->
-	<div class="wc-sec-stats">
-		<div class="wc-sec-stat-card">
-			<h3><?php esc_html_e( 'Pricelist → Shop', 'wc-sku-ean-comparator' ); ?></h3>
-			<div class="wc-sec-stat-numbers">
-				<div class="wc-sec-stat-item">
-					<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $pl_total ) ); ?></span>
-					<span class="wc-sec-stat-label"><?php esc_html_e( 'Total rows', 'wc-sku-ean-comparator' ); ?></span>
-				</div>
-				<div class="wc-sec-stat-item wc-sec-stat-item--success">
-					<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $pl_matched ) ); ?></span>
-					<span class="wc-sec-stat-label"><?php esc_html_e( 'Found in shop', 'wc-sku-ean-comparator' ); ?></span>
-				</div>
-				<div class="wc-sec-stat-item wc-sec-stat-item--warning">
-					<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $pl_unmatched ) ); ?></span>
-					<span class="wc-sec-stat-label"><?php esc_html_e( 'Not found', 'wc-sku-ean-comparator' ); ?></span>
-				</div>
 			</div>
-			<?php if ( $csv1_url ) : ?>
-				<a href="<?php echo esc_url( $csv1_url ); ?>" class="button wc-sec-csv-dl-btn" download>
-					&#8595; <?php esc_html_e( 'Download CSV', 'wc-sku-ean-comparator' ); ?>
-				</a>
-			<?php endif; ?>
-		</div>
 
-		<div class="wc-sec-stat-card">
-			<h3><?php esc_html_e( 'Shop → Pricelist', 'wc-sku-ean-comparator' ); ?></h3>
-			<div class="wc-sec-stat-numbers">
-				<div class="wc-sec-stat-item">
-					<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $shop_total ) ); ?></span>
-					<span class="wc-sec-stat-label"><?php esc_html_e( 'Shop products', 'wc-sku-ean-comparator' ); ?></span>
+			<div class="wc-sec-stat-card">
+				<h3><?php esc_html_e( 'Shop → Pricelist', 'wc-sku-ean-comparator' ); ?></h3>
+				<div class="wc-sec-stat-numbers">
+					<div class="wc-sec-stat-item">
+						<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $shop_total ) ); ?></span>
+						<span class="wc-sec-stat-label"><?php esc_html_e( 'Shop products', 'wc-sku-ean-comparator' ); ?></span>
+					</div>
+					<div class="wc-sec-stat-item wc-sec-stat-item--success">
+						<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $shop_matched ) ); ?></span>
+						<span class="wc-sec-stat-label"><?php esc_html_e( 'In pricelist', 'wc-sku-ean-comparator' ); ?></span>
+					</div>
+					<div class="wc-sec-stat-item wc-sec-stat-item--warning">
+						<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $shop_unmatched ) ); ?></span>
+						<span class="wc-sec-stat-label"><?php esc_html_e( 'Not in pricelist', 'wc-sku-ean-comparator' ); ?></span>
+					</div>
 				</div>
-				<div class="wc-sec-stat-item wc-sec-stat-item--success">
-					<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $shop_matched ) ); ?></span>
-					<span class="wc-sec-stat-label"><?php esc_html_e( 'In pricelist', 'wc-sku-ean-comparator' ); ?></span>
-				</div>
-				<div class="wc-sec-stat-item wc-sec-stat-item--warning">
-					<span class="wc-sec-stat-value"><?php echo esc_html( number_format_i18n( $shop_unmatched ) ); ?></span>
-					<span class="wc-sec-stat-label"><?php esc_html_e( 'Not in pricelist', 'wc-sku-ean-comparator' ); ?></span>
-				</div>
+				<?php if ( $csv2_url ) : ?>
+					<a href="<?php echo esc_url( $csv2_url ); ?>" class="button wc-sec-csv-dl-btn" download>
+						&#8595; <?php esc_html_e( 'Download CSV', 'wc-sku-ean-comparator' ); ?>
+					</a>
+				<?php endif; ?>
 			</div>
-			<?php if ( $csv2_url ) : ?>
-				<a href="<?php echo esc_url( $csv2_url ); ?>" class="button wc-sec-csv-dl-btn" download>
-					&#8595; <?php esc_html_e( 'Download CSV', 'wc-sku-ean-comparator' ); ?>
-				</a>
-			<?php endif; ?>
-		</div>
-	</div>
+
+		</div><!-- .wc-sec-detail-stats -->
+
+	</div><!-- .wc-sec-detail-header -->
 
 	<!-- Results tabs -->
 	<?php if ( is_array( $comparison['results_summary'] ) ) : ?>
