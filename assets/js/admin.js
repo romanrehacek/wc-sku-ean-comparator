@@ -1578,7 +1578,7 @@
 		$( '#wc-sec-file-input' ).val( '' );
 		dropzoneReset();
 		$( '#wc-sec-sheet-selection' ).addClass( 'hidden' );
-		$( '#wc-sec-header-row' ).val( '1' );
+		$( '#wc-sec-header-row' ).val( '0' );
 		$( '#wc-sec-step1-next' ).prop( 'disabled', true );
 		$( '.wc-sec-tab-btn' ).first().click();
 		hideNotice();

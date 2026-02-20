@@ -571,24 +571,65 @@ class File_Handler {
 	}
 
 	/**
-	 * Detect the most likely header row (0-based index) within the first
-	 * $scan_limit rows of $rows. Returns the index of the row with the most
-	 * non-empty cells. Ties are broken by preferring the earliest row.
+	 * Detect the most likely header row index (0-based) in the first few rows.
 	 *
-	 * @param array<int, array<int, string>> $rows       All rows read from file.
-	 * @param int                            $scan_limit How many rows to scan.
-	 * @return int 0-based row index.
+	 * Strategy (in order):
+	 *  1. Score every row by how many of its non-empty cells look like text
+	 *     labels (not purely numeric, not a date-like pattern).
+	 *  2. Among all rows that share the maximum non-empty cell count, prefer
+	 *     the one with the highest text-label score.
+	 *  3. Tie-break: first occurrence wins.
+	 *
+	 * This handles the common case where rows above the real header are
+	 * sparsely filled (e.g. a company name in cell A1) while the header row
+	 * itself has a full set of column labels.
+	 *
+	 * @param array<int, array<int, string>> $rows       Raw rows (0-indexed).
+	 * @param int                            $scan_limit Maximum number of rows to scan.
+	 * @return int 0-based index of the detected header row.
 	 */
 	public function detect_header_row_index( array $rows, int $scan_limit = 10 ): int {
-		$best_idx   = 0;
-		$best_count = 0;
-		$limit      = min( $scan_limit, count( $rows ) );
+		$limit = min( $scan_limit, count( $rows ) );
+		if ( 0 === $limit ) {
+			return 0;
+		}
+
+		$best_idx        = 0;
+		$best_non_empty  = 0;
+		$best_text_score = -1;
 
 		for ( $i = 0; $i < $limit; $i++ ) {
-			$non_empty = count( array_filter( $rows[ $i ], fn( $v ) => '' !== trim( $v ) ) );
-			if ( $non_empty > $best_count ) {
-				$best_count = $non_empty;
-				$best_idx   = $i;
+			$non_empty   = 0;
+			$text_labels = 0;
+
+			foreach ( $rows[ $i ] as $cell ) {
+				$cell = trim( (string) $cell );
+				if ( '' === $cell ) {
+					continue;
+				}
+				++$non_empty;
+
+				// Count as a text label if the cell is NOT purely numeric
+				// and does NOT look like a date (YYYY-MM-DD or DD.MM.YYYY etc.).
+				$is_numeric = is_numeric( $cell );
+				$is_date    = (bool) preg_match(
+					'/^\d{1,4}[.\-\/]\d{1,2}[.\-\/]\d{2,4}$/',
+					$cell
+				);
+				if ( ! $is_numeric && ! $is_date ) {
+					++$text_labels;
+				}
+			}
+
+			// Pick this row if it has strictly more non-empty cells, OR the
+			// same number but a higher text-label score.
+			if (
+				$non_empty > $best_non_empty ||
+				( $non_empty === $best_non_empty && $text_labels > $best_text_score )
+			) {
+				$best_non_empty  = $non_empty;
+				$best_text_score = $text_labels;
+				$best_idx        = $i;
 			}
 		}
 

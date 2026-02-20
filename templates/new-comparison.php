@@ -134,12 +134,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 				name="header_row"
 				min="1"
 				max="20"
-				value="1"
+				value="0"
 				class="small-text"
 			/>
-			<span class="wc-sec-header-row-hint description">
-				<?php esc_html_e( 'Auto-detected. Change if columns look wrong.', 'wc-sku-ean-comparator' ); ?>
-			</span>
+
 			<button type="button" class="button" id="wc-sec-reload-columns-btn">
 				<?php esc_html_e( 'Reload columns', 'wc-sku-ean-comparator' ); ?>
 			</button>
