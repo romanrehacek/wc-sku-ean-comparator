@@ -132,10 +132,17 @@ class Admin_Page {
 			'wc-sec-admin',
 			'wcSecData',
 			array(
-				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
-				'nonce'     => wp_create_nonce( 'wc_sec_ajax' ),
-				'pluginUrl' => WC_SEC_PLUGIN_URL,
-				'editProductUrl' => admin_url( 'post.php?action=edit&post=' ),
+				'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
+				'nonce'            => wp_create_nonce( 'wc_sec_ajax' ),
+				'pluginUrl'        => WC_SEC_PLUGIN_URL,
+				'editProductUrl'   => admin_url( 'post.php?action=edit&post=' ),
+				'historyDetailUrl' => add_query_arg(
+					array(
+						'tab'           => 'history',
+						'comparison_id' => '__ID__',
+					),
+					admin_url( 'tools.php?page=' . self::MENU_SLUG )
+				),
 				'i18n'      => array(
 					'confirmDelete'      => __( 'Are you sure you want to delete this item? This action cannot be undone.', 'wc-sku-ean-comparator' ),
 					'confirmDeleteFile'  => __( 'Are you sure you want to delete this file?', 'wc-sku-ean-comparator' ),

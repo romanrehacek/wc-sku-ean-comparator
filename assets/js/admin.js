@@ -1080,6 +1080,15 @@
 				return;
 			}
 
+			var comparisonId = response.data.comparison_id;
+
+			// Redirect to the history detail page instead of rendering results inline.
+			if ( data.historyDetailUrl && comparisonId ) {
+				window.location.href = data.historyDetailUrl.replace( '__ID__', comparisonId );
+				return;
+			}
+
+			// Fallback (should not normally be reached): render inline.
 			var res = response.data;
 			state.comparisonId = res.comparison_id;
 
