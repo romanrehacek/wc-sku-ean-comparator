@@ -173,6 +173,16 @@ $shop_unmatched = isset( $stats['shop_unmatched'] ) ? (int) $stats['shop_unmatch
 
 	</div><!-- .wc-sec-detail-header -->
 
+	<!-- Header actions -->
+	<div class="wc-sec-detail-header-actions">
+		<button type="button"
+			class="button button-primary wc-sec-rerun-comparison-btn"
+			data-id="<?php echo esc_attr( $comparison['id'] ); ?>"
+			data-nonce="<?php echo esc_attr( wp_create_nonce( 'wc_sec_ajax' ) ); ?>">
+			<?php esc_html_e( 'Re-run Comparison', 'wc-sku-ean-comparator' ); ?>
+		</button>
+	</div>
+
 	<!-- Results tabs -->
 	<?php if ( is_array( $comparison['results_summary'] ) ) : ?>
 

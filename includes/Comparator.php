@@ -142,6 +142,20 @@ class Comparator {
 			$meta_keys_to_fetch[] = $ck;
 		}
 
+		// When name matching is needed, we also need the brand name to support
+		// "Brand Name + Product Name" concatenated matching. The brand term is
+		// fetched via a LEFT JOIN on term_relationships/term_taxonomy/terms with
+		// taxonomy = 'product_brand' (WooCommerce Brands plugin taxonomy).
+		$brand_join     = '';
+		$brand_select   = '';
+		$brand_taxonomy = 'product_brand';
+		if ( $need_name ) {
+			$brand_join   = "LEFT JOIN {$wpdb->term_relationships} tr_brand ON tr_brand.object_id = p.ID
+						LEFT JOIN {$wpdb->term_taxonomy} tt_brand ON tt_brand.term_taxonomy_id = tr_brand.term_taxonomy_id AND tt_brand.taxonomy = '{$brand_taxonomy}'
+						LEFT JOIN {$wpdb->terms} t_brand ON t_brand.term_id = tt_brand.term_id";
+			$brand_select = ', MAX(t_brand.name) AS brand_name';
+		}
+
 		// Process products in batches.
 		$total     = count( $product_ids );
 		$processed = 0;
@@ -176,13 +190,14 @@ class Comparator {
 				$rows = $wpdb->get_results(
 					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 					$wpdb->prepare(
-						"SELECT p.ID, p.post_title,
+						"SELECT p.ID, p.post_title, p.post_type, p.post_parent{$brand_select},
 						{$select_cases}
 						FROM {$wpdb->posts} p
+						{$brand_join}
 						LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key IN ({$meta_placeholders})
 						WHERE p.ID IN ({$placeholders})
 						AND p.post_status = 'publish'
-						GROUP BY p.ID, p.post_title",
+						GROUP BY p.ID, p.post_title, p.post_type, p.post_parent",
 						...$query_params
 					),
 					ARRAY_A
@@ -193,10 +208,12 @@ class Comparator {
 				$rows = $wpdb->get_results(
 					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 					$wpdb->prepare(
-						"SELECT p.ID, p.post_title
+						"SELECT p.ID, p.post_title, p.post_type, p.post_parent{$brand_select}
 						FROM {$wpdb->posts} p
+						{$brand_join}
 						WHERE p.ID IN ({$placeholders})
-						AND p.post_status = 'publish'",
+						AND p.post_status = 'publish'
+						GROUP BY p.ID, p.post_title, p.post_type, p.post_parent",
 						...$batch_ids
 					),
 					ARRAY_A
@@ -207,12 +224,16 @@ class Comparator {
 				foreach ( $rows as $row ) {
 					$product_id = (int) $row['ID'];
 					$name       = (string) $row['post_title'];
+					$brand_name = $need_name ? trim( (string) ( $row['brand_name'] ?? '' ) ) : '';
 
-					// Build a flat product_data entry with all available fields.
-					$product_entry = array(
-						'id'   => $product_id,
-						'name' => $name,
-					);
+				// Build a flat product_data entry with all available fields.
+				$product_entry = array(
+					'id'          => $product_id,
+					'name'        => $name,
+					'brand_name'  => $brand_name,
+					'post_type'   => (string) ( $row['post_type'] ?? 'product' ),
+					'post_parent' => (int) ( $row['post_parent'] ?? 0 ),
+				);
 
 					if ( $need_sku ) {
 						$product_entry['sku'] = trim( (string) ( $row[ 'meta___sku' ] ?? '' ) );
@@ -245,6 +266,11 @@ class Comparator {
 					}
 					if ( $need_name && $name !== '' ) {
 						$maps['name'][ mb_strtolower( $name ) ] = $product_id;
+						// Also index by "Brand Name + Product Name" for pricelist rows
+						// that have brand name prepended to the product title.
+						if ( $brand_name !== '' ) {
+							$maps['name'][ mb_strtolower( $brand_name . ' ' . $name ) ] = $product_id;
+						}
 					}
 					foreach ( $custom_keys as $ck ) {
 						$val = $product_entry[ 'cf__' . $ck ];
@@ -324,13 +350,17 @@ class Comparator {
 				++$matched;
 				$shop_product = $product_maps['product_data'][ $product_id ];
 			} else {
-				$shop_product = array( 'id' => 0, 'name' => '' );
+				$shop_product = array( 'id' => 0, 'name' => '', 'post_type' => '', 'post_parent' => 0 );
 			}
+
+			$is_variation = 'product_variation' === ( $shop_product['post_type'] ?? '' );
 
 			$result_row = array(
 				'found'              => $found,
 				'shop_id'            => $shop_product['id'],
 				'shop_name'          => $shop_product['name'],
+				'is_variation'       => $is_variation,
+				'parent_id'          => $is_variation ? (int) ( $shop_product['post_parent'] ?? 0 ) : 0,
 				'matched_rule_index' => $matched_rule_index,
 			);
 
@@ -436,15 +466,32 @@ class Comparator {
 					$matched_rule_index = $idx;
 					break;
 				}
+				// Also try "Brand Name + Product Name" for name rules, because
+				// pricelist rows may have the brand name prepended to the title.
+				if ( 'name' === $rule['shop_field'] && $shop_val !== '' ) {
+					$brand_name = mb_strtolower( trim( (string) ( $product['brand_name'] ?? '' ) ) );
+					if ( $brand_name !== '' ) {
+						$brand_shop_val = $brand_name . ' ' . $shop_val;
+						if ( isset( $pricelist_sets[ $idx ][ $brand_shop_val ] ) ) {
+							$in_pricelist       = true;
+							$matched_rule_index = $idx;
+							break;
+						}
+					}
+				}
 			}
 
 			if ( $in_pricelist ) {
 				++$matched;
 			}
 
+			$is_variation = 'product_variation' === ( $product['post_type'] ?? '' );
+
 			$result_row = array(
 				'shop_id'            => $product['id'],
 				'shop_name'          => $product['name'],
+				'is_variation'       => $is_variation,
+				'parent_id'          => $is_variation ? (int) ( $product['post_parent'] ?? 0 ) : 0,
 				'in_pricelist'       => $in_pricelist,
 				'matched_rule_index' => $matched_rule_index,
 			);
@@ -475,7 +522,7 @@ class Comparator {
 	 * Generate CSV rows for the pricelist-to-shop comparison result.
 	 *
 	 * Columns:
-	 *   Shop ID | Shop Name | {label (Shop)} per rule | {label (Pricelist)} per rule | Matched by | Found in Shop
+	 *   Shop ID | Product Name (Shop) | Variant | Parent ID | {label (Shop)} per rule | {label (Pricelist)} per rule | Matched by | Found in Shop
 	 *
 	 * @param array{
 	 *   headers: string[],
@@ -493,6 +540,8 @@ class Comparator {
 		$header = array(
 			__( 'Shop ID', 'wc-sku-ean-comparator' ),
 			__( 'Product Name (Shop)', 'wc-sku-ean-comparator' ),
+			__( 'Variant', 'wc-sku-ean-comparator' ),
+			__( 'Parent ID', 'wc-sku-ean-comparator' ),
 		);
 		foreach ( $rules as $rule ) {
 			/* translators: %s: rule label */
@@ -508,9 +557,14 @@ class Comparator {
 		$csv_rows[] = $header;
 
 		foreach ( $result['rows'] as $row ) {
+			$is_variation = ! empty( $row['is_variation'] );
+			$parent_id    = (int) ( $row['parent_id'] ?? 0 );
+
 			$csv_row = array(
 				$row['found'] ? (string) $row['shop_id'] : '',
 				(string) $row['shop_name'],
+				$is_variation ? __( 'Yes', 'wc-sku-ean-comparator' ) : '',
+				( $is_variation && $parent_id > 0 ) ? (string) $parent_id : '',
 			);
 
 			foreach ( $rules as $idx => $rule ) {
@@ -541,7 +595,7 @@ class Comparator {
 	 * Generate CSV rows for the shop-to-pricelist comparison result.
 	 *
 	 * Columns:
-	 *   Shop ID | Shop Name | {label (Shop)} per rule | Matched by | In Pricelist
+	 *   Shop ID | Product Name (Shop) | Variant | Parent ID | {label (Shop)} per rule | Matched by | In Pricelist
 	 *
 	 * @param array{
 	 *   rows: array<int, array<string, mixed>>,
@@ -558,6 +612,8 @@ class Comparator {
 		$header = array(
 			__( 'Shop ID', 'wc-sku-ean-comparator' ),
 			__( 'Product Name (Shop)', 'wc-sku-ean-comparator' ),
+			__( 'Variant', 'wc-sku-ean-comparator' ),
+			__( 'Parent ID', 'wc-sku-ean-comparator' ),
 		);
 		foreach ( $rules as $rule ) {
 			/* translators: %s: rule label */
@@ -569,9 +625,14 @@ class Comparator {
 		$csv_rows[] = $header;
 
 		foreach ( $result['rows'] as $row ) {
+			$is_variation = ! empty( $row['is_variation'] );
+			$parent_id    = (int) ( $row['parent_id'] ?? 0 );
+
 			$csv_row = array(
 				(string) $row['shop_id'],
 				(string) $row['shop_name'],
+				$is_variation ? __( 'Yes', 'wc-sku-ean-comparator' ) : '',
+				( $is_variation && $parent_id > 0 ) ? (string) $parent_id : '',
 			);
 
 			foreach ( $rules as $idx => $rule ) {
@@ -708,7 +769,14 @@ class Comparator {
 	// =========================================================================
 
 	/**
-	 * Get all published product + variation IDs from WooCommerce.
+	 * Get all published product IDs from WooCommerce.
+	 *
+	 * Returns IDs for:
+	 *   - Simple products (post_type = 'product' with no variation children)
+	 *   - Product variations (post_type = 'product_variation')
+	 *
+	 * Variable product parents are excluded because they carry no SKU/EAN of
+	 * their own — all matchable data lives on the individual variations.
 	 *
 	 * @return int[] Array of product IDs.
 	 */
@@ -720,8 +788,18 @@ class Comparator {
 			'intval',
 			$wpdb->get_col(
 				"SELECT ID FROM {$wpdb->posts}
-				WHERE post_type IN ('product', 'product_variation')
-				AND post_status = 'publish'"
+				WHERE post_type = 'product_variation'
+				AND post_status = 'publish'
+				UNION ALL
+				SELECT ID FROM {$wpdb->posts}
+				WHERE post_type = 'product'
+				AND post_status = 'publish'
+				AND ID NOT IN (
+					SELECT DISTINCT post_parent FROM {$wpdb->posts}
+					WHERE post_type = 'product_variation'
+					AND post_status = 'publish'
+					AND post_parent > 0
+				)"
 			)
 		);
 	}
@@ -729,27 +807,104 @@ class Comparator {
 	/**
 	 * Get product IDs belonging to specific WooCommerce brands.
 	 *
+	 * Brands (product_brand taxonomy) are typically assigned only to the parent
+	 * variable product. This method:
+	 *   1. Finds all parent products (any status) matching the given brand slugs.
+	 *   2. Adds all published variations of those parents.
+	 *   3. Also includes simple products (published) directly tagged with the brand.
+	 *   4. Excludes variable product parents (they carry no matchable SKU/EAN).
+	 *
 	 * @param string[] $brand_slugs Array of product_brand taxonomy slugs.
 	 * @return int[] Array of product IDs.
 	 */
 	private function get_product_ids_by_brands( array $brand_slugs ): array {
-		$args = array(
-			'post_type'      => array( 'product', 'product_variation' ),
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'tax_query'      => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
-				array(
-					'taxonomy' => 'product_brand',
-					'field'    => 'slug',
-					'terms'    => $brand_slugs,
-					'operator' => 'IN',
-				),
-			),
+		global $wpdb;
+
+		// Build a safe IN() placeholder for brand slugs.
+		$slug_placeholders = implode( ',', array_fill( 0, count( $brand_slugs ), '%s' ) );
+
+		// Step 1: Find all products (any status) with the brand.
+		// Includes draft parents, since they may have published variations.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$parent_ids = array_map(
+			'intval',
+			$wpdb->get_col(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->prepare(
+					"SELECT DISTINCT p.ID
+					FROM {$wpdb->posts} p
+					INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
+					INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+					INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+					WHERE tt.taxonomy = 'product_brand'
+					AND t.slug IN ({$slug_placeholders})
+					AND p.post_type = 'product'",
+					...$brand_slugs
+				)
+			)
 		);
 
-		$query = new \WP_Query( $args );
+		if ( empty( $parent_ids ) ) {
+			return array();
+		}
 
-		return array_map( 'intval', $query->posts );
+		$parent_placeholders = implode( ',', array_fill( 0, count( $parent_ids ), '%d' ) );
+
+		// Step 2: Find all published variations whose parent has the brand.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$variation_ids = array_map(
+			'intval',
+			$wpdb->get_col(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts}
+					WHERE post_type = 'product_variation'
+					AND post_status = 'publish'
+					AND post_parent IN ({$parent_placeholders})",
+					...$parent_ids
+				)
+			)
+		);
+
+		// Step 3: From parent_ids, keep only published simple products.
+		// Variable parents are those that have at least one variation child.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$variable_parent_ids = array_map(
+			'intval',
+			$wpdb->get_col(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->prepare(
+					"SELECT DISTINCT post_parent FROM {$wpdb->posts}
+					WHERE post_type = 'product_variation'
+					AND post_status = 'publish'
+					AND post_parent IN ({$parent_placeholders})",
+					...$parent_ids
+				)
+			)
+		);
+
+		// Keep only published simple products (exclude variable parents).
+		$simple_ids = array_values( array_diff( $parent_ids, $variable_parent_ids ) );
+		// Filter to only published simple products.
+		if ( ! empty( $simple_ids ) ) {
+			$simple_placeholders = implode( ',', array_fill( 0, count( $simple_ids ), '%d' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$published_simple_ids = array_map(
+				'intval',
+				$wpdb->get_col(
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->prepare(
+						"SELECT ID FROM {$wpdb->posts}
+						WHERE ID IN ({$simple_placeholders})
+						AND post_status = 'publish'",
+						...$simple_ids
+					)
+				)
+			);
+		} else {
+			$published_simple_ids = array();
+		}
+
+		return array_values( array_unique( array_merge( $published_simple_ids, $variation_ids ) ) );
 	}
 }

@@ -174,6 +174,16 @@ class Admin_Page {
 					'metaSheet'         => __( 'Sheet', 'wc-sku-ean-comparator' ),
 					'metaBrands'        => __( 'Brands', 'wc-sku-ean-comparator' ),
 					'metaAllBrands'     => __( 'All brands', 'wc-sku-ean-comparator' ),
+				// Table header labels.
+				'tableStatus'       => __( 'Status', 'wc-sku-ean-comparator' ),
+				'tableShopId'       => __( 'Shop ID', 'wc-sku-ean-comparator' ),
+				'tableShopName'     => __( 'Shop Name', 'wc-sku-ean-comparator' ),
+				'tableVariant'      => __( 'Variant', 'wc-sku-ean-comparator' ),
+				'tableParentId'     => __( 'Parent ID', 'wc-sku-ean-comparator' ),
+				'tableInPricelist'  => __( 'In Pricelist', 'wc-sku-ean-comparator' ),
+				'tableMatchedBy'    => __( 'Matched by', 'wc-sku-ean-comparator' ),
+				'tablePricelistLabel' => __( 'Pricelist', 'wc-sku-ean-comparator' ),
+				'tableShopLabel'    => __( 'Shop', 'wc-sku-ean-comparator' ),
 				),
 			)
 		);

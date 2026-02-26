@@ -113,6 +113,9 @@
 		if ( 'custom_field' === shopField ) {
 			return customKey || 'custom_field';
 		}
+		// Note: These field labels are used when column mapping doesn't have explicit labels.
+		// They are displayed in the UI but are simple/generic and kept in JS for now.
+		// If localization is needed for these specific field types, they can be added to wp_localize_script().
 		var map = { id: 'ID', sku: 'SKU', ean: 'EAN', name: 'Name' };
 		return map[ shopField ] || shopField;
 	}
@@ -1255,24 +1258,31 @@
 		if ( 'pricelist' === type ) {
 			// Pricelist value columns (one per rule, labelled from pricelist side).
 			$.each( rules, function ( i, rule ) {
-				$tr.append( '<th>' + escHtml( 'Pricelist: ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
+				$tr.append( '<th>' + escHtml( data.i18n.tablePricelistLabel + ': ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
 			} );
-			$tr.append( '<th>Status</th>' );
-			$tr.append( '<th>Shop ID</th>' );
-			$tr.append( '<th>Shop Name</th>' );
-			// Shop value columns (one per rule, labelled from shop side).
+			$tr.append( '<th>' + escHtml( data.i18n.tableStatus ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableShopId ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableShopName ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableVariant ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableParentId ) + '</th>' );
+			// Shop value columns — skip 'name' rule (already shown as Shop Name link).
 			$.each( rules, function ( i, rule ) {
-				$tr.append( '<th>' + escHtml( 'Shop: ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
+				if ( 'name' === rule.shop_field ) { return; }
+				$tr.append( '<th>' + escHtml( data.i18n.tableShopLabel + ': ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
 			} );
-			$tr.append( '<th>Matched by</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableMatchedBy ) + '</th>' );
 		} else {
-			$tr.append( '<th>Shop ID</th>' );
-			$tr.append( '<th>Shop Name</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableShopId ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableShopName ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableVariant ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableParentId ) + '</th>' );
+			// Rule value columns — skip 'name' rule (already shown as Shop Name link).
 			$.each( rules, function ( i, rule ) {
+				if ( 'name' === rule.shop_field ) { return; }
 				$tr.append( '<th>' + escHtml( rule.label || ( 'Rule ' + ( i + 1 ) ) ) + '</th>' );
 			} );
-			$tr.append( '<th>In Pricelist</th>' );
-			$tr.append( '<th>Matched by</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableInPricelist ) + '</th>' );
+			$tr.append( '<th>' + escHtml( data.i18n.tableMatchedBy ) + '</th>' );
 		}
 	}
 
@@ -1475,6 +1485,13 @@
 				? escHtml( ( rulesArr[ row.matched_rule_index ] || {} ).label || ( 'Rule ' + ( row.matched_rule_index + 1 ) ) )
 				: '&mdash;';
 
+			var variantCell = row.is_variation
+				? '<span class="wc-sec-badge wc-sec-badge--variant">Yes</span>'
+				: '';
+			var parentCell = ( row.is_variation && row.parent_id && data.editProductUrl )
+				? '<a href="' + escHtml( data.editProductUrl ) + escHtml( String( row.parent_id ) ) + '" target="_blank">' + escHtml( String( row.parent_id ) ) + '</a>'
+				: ( row.parent_id ? escHtml( String( row.parent_id ) ) : '' );
+
 			var html = '<tr class="' + ( row.found ? '' : 'wc-sec-row--unmatched' ) + '">';
 			// Pricelist value per rule.
 			$.each( rulesArr, function ( i ) {
@@ -1483,8 +1500,11 @@
 			html += '<td>' + statusBadge + '</td>';
 			html += '<td>' + ( row.shop_id ? escHtml( String( row.shop_id ) ) : '' ) + '</td>';
 			html += '<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>';
-			// Shop value per rule.
-			$.each( rulesArr, function ( i ) {
+			html += '<td>' + variantCell + '</td>';
+			html += '<td>' + parentCell + '</td>';
+			// Shop value per rule — skip 'name' (already shown as Shop Name link).
+			$.each( rulesArr, function ( i, rule ) {
+				if ( 'name' === ( rule || {} ).shop_field ) { return; }
 				html += '<td>' + escHtml( row[ 'shop_rule_' + i ] || '' ) + '</td>';
 			} );
 			html += '<td>' + matchedRule + '</td>';
@@ -1503,7 +1523,17 @@
 			var shopHtml = '<tr class="' + ( row.in_pricelist ? '' : 'wc-sec-row--unmatched' ) + '">';
 			shopHtml += '<td>' + escHtml( String( row.shop_id ) ) + '</td>';
 			shopHtml += '<td>' + shopNameCell( row.shop_id, row.shop_name ) + '</td>';
-			$.each( rulesArr, function ( i ) {
+			var shopVariantCell = row.is_variation
+				? '<span class="wc-sec-badge wc-sec-badge--variant">Yes</span>'
+				: '';
+			var shopParentCell = ( row.is_variation && row.parent_id && data.editProductUrl )
+				? '<a href="' + escHtml( data.editProductUrl ) + escHtml( String( row.parent_id ) ) + '" target="_blank">' + escHtml( String( row.parent_id ) ) + '</a>'
+				: ( row.parent_id ? escHtml( String( row.parent_id ) ) : '' );
+			shopHtml += '<td>' + shopVariantCell + '</td>';
+			shopHtml += '<td>' + shopParentCell + '</td>';
+			// Rule value per shop product — skip 'name' (already shown as Shop Name link).
+			$.each( rulesArr, function ( i, rule ) {
+				if ( 'name' === ( rule || {} ).shop_field ) { return; }
 				shopHtml += '<td>' + escHtml( row[ 'shop_rule_' + i ] || '' ) + '</td>';
 			} );
 			shopHtml += '<td>' + inPricelist + '</td>';
