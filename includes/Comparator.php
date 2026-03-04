@@ -809,9 +809,9 @@ class Comparator {
 	 *
 	 * Brands (product_brand taxonomy) are typically assigned only to the parent
 	 * variable product. This method:
-	 *   1. Finds all parent products (any status) matching the given brand slugs.
+	 *   1. Finds all parent products matching the given brand slugs.
 	 *   2. Adds all published variations of those parents.
-	 *   3. Also includes simple products (published) directly tagged with the brand.
+	 *   3. Also includes simple products directly tagged with the brand.
 	 *   4. Excludes variable product parents (they carry no matchable SKU/EAN).
 	 *
 	 * @param string[] $brand_slugs Array of product_brand taxonomy slugs.
@@ -823,8 +823,7 @@ class Comparator {
 		// Build a safe IN() placeholder for brand slugs.
 		$slug_placeholders = implode( ',', array_fill( 0, count( $brand_slugs ), '%s' ) );
 
-		// Step 1: Find all products (any status) with the brand.
-		// Includes draft parents, since they may have published variations.
+		// Step 1: Find all published products (parents + simples) with the brand.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$parent_ids = array_map(
 			'intval',
@@ -838,7 +837,8 @@ class Comparator {
 					INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
 					WHERE tt.taxonomy = 'product_brand'
 					AND t.slug IN ({$slug_placeholders})
-					AND p.post_type = 'product'",
+					AND p.post_type = 'product'
+					AND p.post_status = 'publish'",
 					...$brand_slugs
 				)
 			)
@@ -866,7 +866,7 @@ class Comparator {
 			)
 		);
 
-		// Step 3: From parent_ids, keep only published simple products.
+		// Step 3: From parent_ids, keep only those that are NOT variable (i.e. simple).
 		// Variable parents are those that have at least one variation child.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$variable_parent_ids = array_map(
@@ -883,28 +883,8 @@ class Comparator {
 			)
 		);
 
-		// Keep only published simple products (exclude variable parents).
 		$simple_ids = array_values( array_diff( $parent_ids, $variable_parent_ids ) );
-		// Filter to only published simple products.
-		if ( ! empty( $simple_ids ) ) {
-			$simple_placeholders = implode( ',', array_fill( 0, count( $simple_ids ), '%d' ) );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$published_simple_ids = array_map(
-				'intval',
-				$wpdb->get_col(
-					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-					$wpdb->prepare(
-						"SELECT ID FROM {$wpdb->posts}
-						WHERE ID IN ({$simple_placeholders})
-						AND post_status = 'publish'",
-						...$simple_ids
-					)
-				)
-			);
-		} else {
-			$published_simple_ids = array();
-		}
 
-		return array_values( array_unique( array_merge( $published_simple_ids, $variation_ids ) ) );
+		return array_values( array_unique( array_merge( $simple_ids, $variation_ids ) ) );
 	}
 }
