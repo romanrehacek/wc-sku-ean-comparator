@@ -423,9 +423,6 @@ msgid "Failed to update comparison record."
 msgstr "Záznam porovnania sa nepodarilo aktualizovať."
 
 #: templates/history-detail.php:53
-msgid "Date"
-msgstr "Dátum"
-
 #: templates/history-list.php:92
 msgid "Date"
 msgstr "Dátum"
@@ -722,27 +719,3 @@ msgstr "Chyba aktivácie doplnku"
 #: wc-sku-ean-comparator.php:119
 msgid "WC SKU/EAN Comparator: Composer dependencies are missing. Please run \"composer install\"."
 msgstr "WC SKU/EAN Komparátor: Chýbajú závislosti Composer. Spustite príkaz \"composer install\"."
-
-#: includes/Admin_Page.php:178
-msgid "Status"
-msgstr "Stav"
-
-#: includes/Admin_Page.php:179
-msgid "Shop Name"
-msgstr "Názov Obchodu"
-
-#: includes/Admin_Page.php:180
-msgid "Variant"
-msgstr "Variant"
-
-#: includes/Admin_Page.php:181
-msgid "Parent ID"
-msgstr "ID Nadriadeného"
-
-#: includes/Admin_Page.php:185
-msgid "Pricelist"
-msgstr "Cenník"
-
-#: includes/Admin_Page.php:186
-msgid "Shop"
-msgstr "Obchod"

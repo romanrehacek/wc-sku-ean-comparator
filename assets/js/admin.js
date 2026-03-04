@@ -113,9 +113,6 @@
 		if ( 'custom_field' === shopField ) {
 			return customKey || 'custom_field';
 		}
-		// Note: These field labels are used when column mapping doesn't have explicit labels.
-		// They are displayed in the UI but are simple/generic and kept in JS for now.
-		// If localization is needed for these specific field types, they can be added to wp_localize_script().
 		var map = { id: 'ID', sku: 'SKU', ean: 'EAN', name: 'Name' };
 		return map[ shopField ] || shopField;
 	}
@@ -1258,31 +1255,31 @@
 		if ( 'pricelist' === type ) {
 			// Pricelist value columns (one per rule, labelled from pricelist side).
 			$.each( rules, function ( i, rule ) {
-				$tr.append( '<th>' + escHtml( data.i18n.tablePricelistLabel + ': ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
+				$tr.append( '<th>' + escHtml( 'Pricelist: ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
 			} );
-			$tr.append( '<th>' + escHtml( data.i18n.tableStatus ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableShopId ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableShopName ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableVariant ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableParentId ) + '</th>' );
+			$tr.append( '<th>Status</th>' );
+			$tr.append( '<th>Shop ID</th>' );
+			$tr.append( '<th>Shop Name</th>' );
+			$tr.append( '<th>Variant</th>' );
+			$tr.append( '<th>Parent ID</th>' );
 			// Shop value columns — skip 'name' rule (already shown as Shop Name link).
 			$.each( rules, function ( i, rule ) {
 				if ( 'name' === rule.shop_field ) { return; }
-				$tr.append( '<th>' + escHtml( data.i18n.tableShopLabel + ': ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
+				$tr.append( '<th>' + escHtml( 'Shop: ' + ( rule.label || ( 'Rule ' + ( i + 1 ) ) ) ) + '</th>' );
 			} );
-			$tr.append( '<th>' + escHtml( data.i18n.tableMatchedBy ) + '</th>' );
+			$tr.append( '<th>Matched by</th>' );
 		} else {
-			$tr.append( '<th>' + escHtml( data.i18n.tableShopId ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableShopName ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableVariant ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableParentId ) + '</th>' );
+			$tr.append( '<th>Shop ID</th>' );
+			$tr.append( '<th>Shop Name</th>' );
+			$tr.append( '<th>Variant</th>' );
+			$tr.append( '<th>Parent ID</th>' );
 			// Rule value columns — skip 'name' rule (already shown as Shop Name link).
 			$.each( rules, function ( i, rule ) {
 				if ( 'name' === rule.shop_field ) { return; }
 				$tr.append( '<th>' + escHtml( rule.label || ( 'Rule ' + ( i + 1 ) ) ) + '</th>' );
 			} );
-			$tr.append( '<th>' + escHtml( data.i18n.tableInPricelist ) + '</th>' );
-			$tr.append( '<th>' + escHtml( data.i18n.tableMatchedBy ) + '</th>' );
+			$tr.append( '<th>In Pricelist</th>' );
+			$tr.append( '<th>Matched by</th>' );
 		}
 	}
 

@@ -1,24 +1,24 @@
-# Copyright (C) 2026 Roman Rehacek
+# Copyright (C) 2026 SJB Digital
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: WC SKU/EAN Comparator 1.0.20\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-sku-ean-comparator\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Project-Id-Version: WC SKU/EAN Comparator 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-02-26T16:23:11+01:00\n"
+"POT-Creation-Date: 2026-02-20T00:00:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.12.0\n"
+"X-Generator: Manual\n"
 "X-Domain: wc-sku-ean-comparator\n"
 
 #. Plugin Name of the plugin
 #: wc-sku-ean-comparator.php
 #: includes/Admin_Page.php:62
 #: includes/Admin_Page.php:63
-#: includes/Admin_Page.php:212
+#: includes/Admin_Page.php:202
 msgid "WC SKU/EAN Comparator"
 msgstr ""
 
@@ -34,12 +34,12 @@ msgstr ""
 
 #. Author of the plugin
 #: wc-sku-ean-comparator.php
-msgid "Roman Rehacek"
+msgid "SJB Digital"
 msgstr ""
 
 #. Author URI of the plugin
 #: wc-sku-ean-comparator.php
-msgid "https://github.com/romanrehacek"
+msgid "https://sjbdigital.dev"
 msgstr ""
 
 #: includes/Admin_Page.php:147
@@ -88,14 +88,13 @@ msgid "Please select at least one SKU column."
 msgstr ""
 
 #: includes/Admin_Page.php:158
-#: templates/history-detail.php:182
-#: templates/history-detail.php:255
+#: templates/history-detail.php:245
 msgid "Re-run Comparison"
 msgstr ""
 
 #: includes/Admin_Page.php:160
 #: templates/history-detail.php:127
-#: templates/history-detail.php:191
+#: templates/history-detail.php:181
 #: templates/new-comparison.php:210
 msgid "Pricelist → Shop"
 msgstr ""
@@ -107,20 +106,20 @@ msgstr ""
 
 #: includes/Admin_Page.php:162
 #: templates/history-detail.php:135
-#: templates/history-list.php:155
+#: templates/history-list.php:164
 msgid "Found in shop"
 msgstr ""
 
 #: includes/Admin_Page.php:163
 #: templates/history-detail.php:139
-#: templates/history-detail.php:204
+#: templates/history-detail.php:194
 #: templates/new-comparison.php:223
 msgid "Not found"
 msgstr ""
 
 #: includes/Admin_Page.php:165
 #: templates/history-detail.php:150
-#: templates/history-detail.php:194
+#: templates/history-detail.php:184
 #: templates/new-comparison.php:213
 msgid "Shop → Pricelist"
 msgstr ""
@@ -132,13 +131,13 @@ msgstr ""
 
 #: includes/Admin_Page.php:167
 #: templates/history-detail.php:158
-#: templates/history-list.php:171
+#: templates/history-list.php:180
 msgid "In pricelist"
 msgstr ""
 
 #: includes/Admin_Page.php:168
 #: templates/history-detail.php:162
-#: templates/history-list.php:175
+#: templates/history-list.php:184
 msgid "Not in pricelist"
 msgstr ""
 
@@ -162,88 +161,48 @@ msgstr ""
 
 #: includes/Admin_Page.php:175
 #: templates/history-detail.php:66
-#: templates/history-list.php:87
+#: templates/history-list.php:96
 msgid "Brands"
 msgstr ""
 
 #: includes/Admin_Page.php:176
 #: templates/history-detail.php:69
-#: templates/history-list.php:128
+#: templates/history-list.php:137
 msgid "All brands"
 msgstr ""
 
-#: includes/Admin_Page.php:178
-msgid "Status"
-msgstr ""
-
-#: includes/Admin_Page.php:179
-#: includes/Comparator.php:541
-#: includes/Comparator.php:613
-msgid "Shop ID"
-msgstr ""
-
-#: includes/Admin_Page.php:180
-msgid "Shop Name"
-msgstr ""
-
-#: includes/Admin_Page.php:181
-#: includes/Comparator.php:543
-#: includes/Comparator.php:615
-msgid "Variant"
-msgstr ""
-
-#: includes/Admin_Page.php:182
-#: includes/Comparator.php:544
-#: includes/Comparator.php:616
-msgid "Parent ID"
-msgstr ""
-
-#: includes/Admin_Page.php:183
-#: includes/Comparator.php:623
-msgid "In Pricelist"
-msgstr ""
-
-#: includes/Admin_Page.php:184
-#: includes/Comparator.php:554
-#: includes/Comparator.php:622
-msgid "Matched by"
-msgstr ""
-
-#: includes/Admin_Page.php:185
-msgid "Pricelist"
-msgstr ""
-
-#: includes/Admin_Page.php:186
-msgid "Shop"
-msgstr ""
-
-#: includes/Admin_Page.php:199
+#: includes/Admin_Page.php:189
+#: includes/Admin_Page.php:277
 msgid "You do not have sufficient permissions to access this page."
 msgstr ""
 
-#: includes/Admin_Page.php:240
+#: includes/Admin_Page.php:230
+#: includes/Admin_Page.php:260
+#: includes/Admin_Page.php:299
+#: includes/Admin_Page.php:338
+msgid "Template file not found."
+msgstr ""
+
+#: includes/Admin_Page.php:230
+#: includes/Admin_Page.php:231
+#: templates/history-detail.php:49
+#: templates/history-list.php:55
 #: templates/new-comparison.php:257
 msgid "New Comparison"
 msgstr ""
 
-#: includes/Admin_Page.php:241
+#: includes/Admin_Page.php:231
 msgid "History"
 msgstr ""
 
-#: includes/Admin_Page.php:242
+#: includes/Admin_Page.php:232
 msgid "Settings"
 msgstr ""
 
-#: includes/Admin_Page.php:270
-#: includes/Admin_Page.php:309
-#: includes/Admin_Page.php:348
-msgid "Template file not found."
-msgstr ""
-
-#: includes/Admin_Page.php:287
-#: includes/Ajax_Handler.php:589
-#: includes/Ajax_Handler.php:638
-#: includes/Ajax_Handler.php:794
+#: includes/Admin_Page.php:277
+#: includes/Ajax_Handler.php:594
+#: includes/Ajax_Handler.php:643
+#: includes/Ajax_Handler.php:799
 msgid "Comparison not found."
 msgstr ""
 
@@ -255,197 +214,208 @@ msgstr ""
 msgid "You do not have permission to perform this action."
 msgstr ""
 
-#: includes/Ajax_Handler.php:108
+#: includes/Ajax_Handler.php:107
 msgid "No file provided."
 msgstr ""
 
-#: includes/Ajax_Handler.php:159
-#: includes/Ajax_Handler.php:184
-#: includes/Ajax_Handler.php:218
-#: includes/Ajax_Handler.php:450
+#: includes/Ajax_Handler.php:164
+#: includes/Ajax_Handler.php:189
+#: includes/Ajax_Handler.php:223
+#: includes/Ajax_Handler.php:455
 msgid "Filename is required."
 msgstr ""
 
-#: includes/Ajax_Handler.php:168
+#: includes/Ajax_Handler.php:173
 msgid "File deleted successfully."
 msgstr ""
 
-#: includes/Ajax_Handler.php:246
+#: includes/Ajax_Handler.php:251
 msgid "The file appears to be empty."
 msgstr ""
 
-#: includes/Ajax_Handler.php:409
+#: includes/Ajax_Handler.php:414
 msgid "At least one mapping rule is required."
 msgstr ""
 
-#: includes/Ajax_Handler.php:446
+#: includes/Ajax_Handler.php:451
 msgid "No valid mapping rules provided."
 msgstr ""
 
-#: includes/Ajax_Handler.php:476
-#: includes/Ajax_Handler.php:683
+#: includes/Ajax_Handler.php:481
+#: includes/Ajax_Handler.php:688
 msgid "The file contains no data rows."
 msgstr ""
 
-#: includes/Ajax_Handler.php:583
-#: includes/Ajax_Handler.php:632
-#: includes/Ajax_Handler.php:788
+#: includes/Ajax_Handler.php:588
+#: includes/Ajax_Handler.php:637
+#: includes/Ajax_Handler.php:793
 msgid "Invalid comparison ID."
 msgstr ""
 
-#: includes/Ajax_Handler.php:595
+#: includes/Ajax_Handler.php:600
 msgid "Results not available for this comparison."
 msgstr ""
 
-#: includes/Ajax_Handler.php:651
+#: includes/Ajax_Handler.php:656
 msgid "Stored column mapping is invalid or uses a legacy format. Please run a new comparison."
 msgstr ""
 
-#: includes/Ajax_Handler.php:657
+#: includes/Ajax_Handler.php:662
 msgid "No valid mapping rules found in stored comparison."
 msgstr ""
 
-#: includes/Ajax_Handler.php:807
+#: includes/Ajax_Handler.php:812
 msgid "Failed to delete comparison record."
 msgstr ""
 
-#: includes/Ajax_Handler.php:812
+#: includes/Ajax_Handler.php:817
 msgid "Comparison deleted successfully."
 msgstr ""
 
-#: includes/Comparator.php:542
-#: includes/Comparator.php:614
+#: includes/Comparator.php:494
+#: includes/Comparator.php:559
+msgid "Shop ID"
+msgstr ""
+
+#: includes/Comparator.php:495
+#: includes/Comparator.php:560
 msgid "Product Name (Shop)"
 msgstr ""
 
 #. translators: %s: rule label
-#: includes/Comparator.php:548
-#: includes/Comparator.php:620
+#: includes/Comparator.php:499
+#: includes/Comparator.php:564
 #, php-format
 msgid "%s (Shop)"
 msgstr ""
 
 #. translators: %s: rule label
-#: includes/Comparator.php:552
+#: includes/Comparator.php:503
 #, php-format
 msgid "%s (Pricelist)"
 msgstr ""
 
-#: includes/Comparator.php:555
+#: includes/Comparator.php:505
+#: includes/Comparator.php:566
+msgid "Matched by"
+msgstr ""
+
+#: includes/Comparator.php:506
 msgid "Found in Shop"
 msgstr ""
 
-#: includes/Comparator.php:566
-#: includes/Comparator.php:585
-#: includes/Comparator.php:634
-#: includes/Comparator.php:649
+#: includes/Comparator.php:531
+#: includes/Comparator.php:588
 msgid "Yes"
 msgstr ""
 
-#: includes/Comparator.php:586
-#: includes/Comparator.php:650
+#: includes/Comparator.php:531
+#: includes/Comparator.php:588
 msgid "No"
 msgstr ""
 
+#: includes/Comparator.php:567
+msgid "In Pricelist"
+msgstr ""
+
 #. translators: 1: file size, 2: max allowed size
-#: includes/File_Handler.php:184
+#: includes/File_Handler.php:181
 #, php-format
 msgid "File size (%1$s) exceeds the maximum allowed size (%2$s)."
 msgstr ""
 
 #. translators: %s: file extension
-#: includes/File_Handler.php:200
+#: includes/File_Handler.php:197
 #, php-format
 msgid "File type \".%s\" is not allowed. Allowed types: CSV, XLS, XLSX."
 msgstr ""
 
-#: includes/File_Handler.php:211
+#: includes/File_Handler.php:208
 msgid "File type could not be verified."
 msgstr ""
 
-#: includes/File_Handler.php:236
+#: includes/File_Handler.php:234
 msgid "Failed to save uploaded file. Check directory permissions."
 msgstr ""
 
 #. translators: %s: filename
-#: includes/File_Handler.php:307
-#: includes/File_Handler.php:338
-#: includes/File_Handler.php:369
+#: includes/File_Handler.php:305
+#: includes/File_Handler.php:336
+#: includes/File_Handler.php:367
 #, php-format
 msgid "File \"%s\" not found."
 msgstr ""
 
-#: includes/File_Handler.php:316
-#: includes/File_Handler.php:347
+#: includes/File_Handler.php:314
+#: includes/File_Handler.php:345
 msgid "Failed to delete file."
 msgstr ""
 
 #. translators: %s: error message
-#: includes/File_Handler.php:394
+#: includes/File_Handler.php:392
 #, php-format
 msgid "Failed to read spreadsheet: %s"
 msgstr ""
 
-#: includes/File_Handler.php:410
+#: includes/File_Handler.php:408
 msgid "CSV file not found."
 msgstr ""
 
-#: includes/File_Handler.php:417
+#: includes/File_Handler.php:415
 msgid "Failed to open CSV file."
 msgstr ""
 
 #. translators: %s: error message
-#: includes/File_Handler.php:491
+#: includes/File_Handler.php:489
 #, php-format
 msgid "Failed to parse spreadsheet: %s"
 msgstr ""
 
-#: includes/File_Handler.php:666
+#: includes/File_Handler.php:623
 msgid "Failed to create output CSV file."
 msgstr ""
 
-#: includes/File_Handler.php:723
+#: includes/File_Handler.php:680
 msgid "The uploaded file exceeds the upload_max_filesize directive in php.ini."
 msgstr ""
 
-#: includes/File_Handler.php:724
+#: includes/File_Handler.php:681
 msgid "The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form."
 msgstr ""
 
-#: includes/File_Handler.php:725
+#: includes/File_Handler.php:682
 msgid "The uploaded file was only partially uploaded."
 msgstr ""
 
-#: includes/File_Handler.php:726
+#: includes/File_Handler.php:683
 msgid "No file was uploaded."
 msgstr ""
 
-#: includes/File_Handler.php:727
+#: includes/File_Handler.php:684
 msgid "Missing a temporary folder."
 msgstr ""
 
-#: includes/File_Handler.php:728
+#: includes/File_Handler.php:685
 msgid "Failed to write file to disk."
 msgstr ""
 
-#: includes/File_Handler.php:729
+#: includes/File_Handler.php:686
 msgid "A PHP extension stopped the file upload."
 msgstr ""
 
-#: includes/File_Handler.php:732
+#: includes/File_Handler.php:689
 msgid "Unknown upload error."
 msgstr ""
 
-#: includes/History.php:145
+#: includes/History.php:121
 msgid "Failed to save comparison record to database."
 msgstr ""
 
-#: includes/History.php:293
+#: includes/History.php:263
 msgid "Failed to update comparison record."
 msgstr ""
 
 #: templates/history-detail.php:53
-#: templates/history-list.php:83
 msgid "Date"
 msgstr ""
 
@@ -475,99 +445,107 @@ msgstr ""
 msgid "Download CSV"
 msgstr ""
 
-#: templates/history-detail.php:200
+#: templates/history-detail.php:190
 #: templates/new-comparison.php:219
 msgid "Search..."
 msgstr ""
 
-#: templates/history-detail.php:202
+#: templates/history-detail.php:192
 #: templates/new-comparison.php:221
 msgid "All"
 msgstr ""
 
-#: templates/history-detail.php:203
+#: templates/history-detail.php:193
 #: templates/new-comparison.php:222
 msgid "Found"
 msgstr ""
 
-#: templates/history-detail.php:216
-#: templates/history-detail.php:231
+#: templates/history-detail.php:206
+#: templates/history-detail.php:221
 msgid "Loading..."
 msgstr ""
 
-#: templates/history-detail.php:245
+#: templates/history-detail.php:235
 msgid "Detailed results are not available for this comparison."
 msgstr ""
 
-#: templates/history-detail.php:262
+#: templates/history-detail.php:252
 msgid "Delete This Comparison"
+msgstr ""
+
+#: templates/history-list.php:53
+msgid "Comparison History"
 msgstr ""
 
 #: templates/history-list.php:54
 msgid "No comparisons found. Run your first comparison to see results here."
 msgstr ""
 
-#: templates/history-list.php:56
+#: templates/history-list.php:55
 msgid "Start New Comparison"
 msgstr ""
 
-#: templates/history-list.php:71
+#: templates/history-list.php:80
 msgid "ID"
 msgstr ""
 
-#: templates/history-list.php:77
+#: templates/history-list.php:86
 msgid "Price List File"
 msgstr ""
 
-#: templates/history-list.php:88
+#: templates/history-list.php:92
+msgid "Date"
+msgstr ""
+
+#: templates/history-list.php:97
 msgid "Pricelist Rows"
 msgstr ""
 
-#: templates/history-list.php:89
+#: templates/history-list.php:98
 msgid "Shop Products"
 msgstr ""
 
-#: templates/history-list.php:90
+#: templates/history-list.php:99
 msgid "CSV Downloads"
 msgstr ""
 
-#: templates/history-list.php:91
+#: templates/history-list.php:100
 msgid "Actions"
 msgstr ""
 
 #. translators: %d: number of additional brands
-#: templates/history-list.php:138
+#: templates/history-list.php:147
 #, php-format
 msgid " +%d more"
 msgid_plural " +%d more"
 msgstr[0] ""
 msgstr[1] ""
 
-#: templates/history-list.php:159
+#: templates/history-list.php:168
 msgid "Not found in shop"
 msgstr ""
 
-#: templates/history-list.php:182
+#: templates/history-list.php:191
 msgid "Pricelist→Shop"
 msgstr ""
 
-#: templates/history-list.php:190
+#: templates/history-list.php:199
 msgid "Shop→Pricelist"
 msgstr ""
 
-#: templates/history-list.php:194
+#: templates/history-list.php:203
 msgid "N/A"
 msgstr ""
 
-#: templates/history-list.php:199
+#: templates/history-list.php:208
 msgid "View"
 msgstr ""
 
-#: templates/history-list.php:206
+#: templates/history-list.php:215
 msgid "Re-run"
 msgstr ""
 
-#: templates/history-list.php:212
+#: templates/history-list.php:221
 msgid "Delete"
 msgstr ""
 
