@@ -823,9 +823,11 @@ class Comparator {
 		// Build a safe IN() placeholder for brand slugs.
 		$slug_placeholders = implode( ',', array_fill( 0, count( $brand_slugs ), '%s' ) );
 
-		// Step 1: Find all published products (parents + simples) with the brand.
+		$active_statuses = "('publish', 'private', 'draft', 'pending')";
+
+		// Step 1a: Find all post_type='product' (parents + simples) with the brand.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$parent_ids = array_map(
+		$product_ids = array_map(
 			'intval',
 			$wpdb->get_col(
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -838,53 +840,80 @@ class Comparator {
 					WHERE tt.taxonomy = 'product_brand'
 					AND t.slug IN ({$slug_placeholders})
 					AND p.post_type = 'product'
-					AND p.post_status IN ('publish', 'private', 'draft', 'pending')",
+					AND p.post_status IN {$active_statuses}",
 					...$brand_slugs
 				)
 			)
 		);
 
-		if ( empty( $parent_ids ) ) {
+		// Step 1b: Also find product_variations directly tagged with the brand
+		// (some setups assign brands to variations instead of / in addition to the parent).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$direct_variation_ids = array_map(
+			'intval',
+			$wpdb->get_col(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->prepare(
+					"SELECT DISTINCT p.ID
+					FROM {$wpdb->posts} p
+					INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
+					INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+					INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+					WHERE tt.taxonomy = 'product_brand'
+					AND t.slug IN ({$slug_placeholders})
+					AND p.post_type = 'product_variation'
+					AND p.post_status IN {$active_statuses}",
+					...$brand_slugs
+				)
+			)
+		);
+
+		if ( empty( $product_ids ) && empty( $direct_variation_ids ) ) {
 			return array();
 		}
 
-		$parent_placeholders = implode( ',', array_fill( 0, count( $parent_ids ), '%d' ) );
+		$result_ids = $direct_variation_ids;
 
-		// Step 2: Find all published variations whose parent has the brand.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$variation_ids = array_map(
-			'intval',
-			$wpdb->get_col(
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->prepare(
-					"SELECT ID FROM {$wpdb->posts}
-					WHERE post_type = 'product_variation'
-					AND post_status IN ('publish', 'private', 'draft', 'pending')
-					AND post_parent IN ({$parent_placeholders})",
-					...$parent_ids
+		if ( ! empty( $product_ids ) ) {
+			$parent_placeholders = implode( ',', array_fill( 0, count( $product_ids ), '%d' ) );
+
+			// Step 2: Find all variations whose parent has the brand.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$variation_ids = array_map(
+				'intval',
+				$wpdb->get_col(
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->prepare(
+						"SELECT ID FROM {$wpdb->posts}
+						WHERE post_type = 'product_variation'
+						AND post_status IN {$active_statuses}
+						AND post_parent IN ({$parent_placeholders})",
+						...$product_ids
+					)
 				)
-			)
-		);
+			);
 
-		// Step 3: From parent_ids, keep only those that are NOT variable (i.e. simple).
-		// Variable parents are those that have at least one variation child.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$variable_parent_ids = array_map(
-			'intval',
-			$wpdb->get_col(
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->prepare(
-					"SELECT DISTINCT post_parent FROM {$wpdb->posts}
-					WHERE post_type = 'product_variation'
-					AND post_status IN ('publish', 'private', 'draft', 'pending')
-					AND post_parent IN ({$parent_placeholders})",
-					...$parent_ids
+			// Step 3: From product_ids, keep only those that are NOT variable (i.e. simple).
+			// Variable parents are those that have at least one variation child.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$variable_parent_ids = array_map(
+				'intval',
+				$wpdb->get_col(
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->prepare(
+						"SELECT DISTINCT post_parent FROM {$wpdb->posts}
+						WHERE post_type = 'product_variation'
+						AND post_status IN {$active_statuses}
+						AND post_parent IN ({$parent_placeholders})",
+						...$product_ids
+					)
 				)
-			)
-		);
+			);
 
-		$simple_ids = array_values( array_diff( $parent_ids, $variable_parent_ids ) );
+			$simple_ids = array_values( array_diff( $product_ids, $variable_parent_ids ) );
+			$result_ids = array_merge( $result_ids, $simple_ids, $variation_ids );
+		}
 
-		return array_values( array_unique( array_merge( $simple_ids, $variation_ids ) ) );
+		return array_values( array_unique( $result_ids ) );
 	}
 }
