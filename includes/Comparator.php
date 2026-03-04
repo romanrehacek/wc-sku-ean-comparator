@@ -196,7 +196,7 @@ class Comparator {
 						{$brand_join}
 						LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key IN ({$meta_placeholders})
 						WHERE p.ID IN ({$placeholders})
-						AND p.post_status = 'publish'
+						AND p.post_status IN ('publish', 'private', 'draft', 'pending')
 						GROUP BY p.ID, p.post_title, p.post_type, p.post_parent",
 						...$query_params
 					),
@@ -212,7 +212,7 @@ class Comparator {
 						FROM {$wpdb->posts} p
 						{$brand_join}
 						WHERE p.ID IN ({$placeholders})
-						AND p.post_status = 'publish'
+						AND p.post_status IN ('publish', 'private', 'draft', 'pending')
 						GROUP BY p.ID, p.post_title, p.post_type, p.post_parent",
 						...$batch_ids
 					),
@@ -789,15 +789,15 @@ class Comparator {
 			$wpdb->get_col(
 				"SELECT ID FROM {$wpdb->posts}
 				WHERE post_type = 'product_variation'
-				AND post_status = 'publish'
+				AND post_status IN ('publish', 'private', 'draft', 'pending')
 				UNION ALL
 				SELECT ID FROM {$wpdb->posts}
 				WHERE post_type = 'product'
-				AND post_status = 'publish'
+				AND post_status IN ('publish', 'private', 'draft', 'pending')
 				AND ID NOT IN (
 					SELECT DISTINCT post_parent FROM {$wpdb->posts}
 					WHERE post_type = 'product_variation'
-					AND post_status = 'publish'
+					AND post_status IN ('publish', 'private', 'draft', 'pending')
 					AND post_parent > 0
 				)"
 			)
@@ -838,7 +838,7 @@ class Comparator {
 					WHERE tt.taxonomy = 'product_brand'
 					AND t.slug IN ({$slug_placeholders})
 					AND p.post_type = 'product'
-					AND p.post_status = 'publish'",
+					AND p.post_status IN ('publish', 'private', 'draft', 'pending')",
 					...$brand_slugs
 				)
 			)
@@ -859,7 +859,7 @@ class Comparator {
 				$wpdb->prepare(
 					"SELECT ID FROM {$wpdb->posts}
 					WHERE post_type = 'product_variation'
-					AND post_status = 'publish'
+					AND post_status IN ('publish', 'private', 'draft', 'pending')
 					AND post_parent IN ({$parent_placeholders})",
 					...$parent_ids
 				)
@@ -876,7 +876,7 @@ class Comparator {
 				$wpdb->prepare(
 					"SELECT DISTINCT post_parent FROM {$wpdb->posts}
 					WHERE post_type = 'product_variation'
-					AND post_status = 'publish'
+					AND post_status IN ('publish', 'private', 'draft', 'pending')
 					AND post_parent IN ({$parent_placeholders})",
 					...$parent_ids
 				)
