@@ -32,6 +32,22 @@ define( 'WC_SEC_TEXT_DOMAIN', 'wc-sku-ean-comparator' );
 // Composer autoloader.
 if ( file_exists( WC_SEC_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once WC_SEC_PLUGIN_DIR . 'vendor/autoload.php';
+
+	/*
+	 * Re-register our ClassLoader with prepend=true on plugins_loaded so that
+	 * our copy of PhpSpreadsheet takes precedence over any bundled copy shipped
+	 * by other plugins (e.g. wp-all-import-pro). Plugins load their autoloaders
+	 * at file-include time; the one registered last with prepend=true wins.
+	 * Priority 1 runs before every normal plugins_loaded callback but after all
+	 * plugin files have been included (and their autoloaders registered).
+	 */
+	add_action(
+		'plugins_loaded',
+		static function () {
+			ComposerAutoloaderInit80bc540b40411a808afd48f604018a18::getLoader()->register( true );
+		},
+		1
+	);
 } else {
 	add_action(
 		'admin_notices',

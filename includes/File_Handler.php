@@ -9,6 +9,7 @@ namespace WC_SKU_EAN_Comparator;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
+use PhpOffice\PhpSpreadsheet\Reader\IReadFilter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -450,7 +451,30 @@ class File_Handler {
 	 */
 	public function parse_sheet( string $filepath, int $sheet_index = 0, int $max_rows = 0 ): array|\WP_Error {
 		try {
-			$reader      = $this->create_spreadsheet_reader( $filepath );
+			$reader = $this->create_spreadsheet_reader( $filepath );
+
+			// Apply a row-range ReadFilter when max_rows is set to avoid loading
+			// the entire worksheet into memory (critical for large XLSX files).
+			if ( $max_rows > 0 && method_exists( $reader, 'setReadFilter' ) ) {
+				$filter = new class( 1, $max_rows ) implements IReadFilter {
+					private int $start_row;
+					private int $end_row;
+
+					public function __construct( int $start_row, int $end_row ) {
+						$this->start_row = $start_row;
+						$this->end_row   = $end_row;
+					}
+
+					// Signature without type hints for compatibility with PhpSpreadsheet 1.x
+					// (IReadFilter::readCell had no type declarations before v2.0).
+					// phpcs:ignore Squiz.Commenting.FunctionComment.Missing
+					public function readCell( $columnAddress, $row, $worksheetName = '' ) {
+						return $row >= $this->start_row && $row <= $this->end_row;
+					}
+				};
+				$reader->setReadFilter( $filter );
+			}
+
 			$spreadsheet = $reader->load( $filepath );
 			$sheet       = $spreadsheet->getSheet( $sheet_index );
 			$rows        = array();
@@ -681,12 +705,19 @@ class File_Handler {
 	/**
 	 * Create a PhpSpreadsheet reader appropriate for the given file.
 	 *
+	 * ReadDataOnly is enabled to skip all style/formatting processing, which
+	 * dramatically reduces memory usage and execution time for large XLSX files.
+	 *
 	 * @param string $filepath Full path.
 	 * @return IReader
 	 * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception If file type is unsupported.
 	 */
 	private function create_spreadsheet_reader( string $filepath ): IReader {
-		return IOFactory::createReaderForFile( $filepath );
+		$reader = IOFactory::createReaderForFile( $filepath );
+		if ( method_exists( $reader, 'setReadDataOnly' ) ) {
+			$reader->setReadDataOnly( true );
+		}
+		return $reader;
 	}
 
 	/**
